@@ -1,0 +1,12 @@
+version: '3'
+services:
+  plugin_browser:
+    build: .
+    container_name: plugin_browser
+    environment:
+        - ANNOUNCEMENT_CHANNEL=CHANNEL_ID_FOR_RELEASE_ANNOUNCEMENTS
+        - APPROVAL_CHANNEL=CHANNEL_ID_FOR_APPROVAL_PROMPTS
+        - DISCORD_TOKEN=YOUR_DISCORD_TOKEN
+    networks:
+        - database-network
+    restart: unless-stopped

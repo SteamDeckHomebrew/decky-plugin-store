@@ -1,0 +1,143 @@
+from os import getenv, path
+from discord.ext.commands import Bot
+from discord import Embed
+from discord import utils
+from aiohttp.web import Application, get, json_response, static, Response, run_app
+from database import Database
+from plugin_parser import get_publish_json
+from database import Plugin
+from asyncio import get_event_loop
+
+ADMINS = ["317602018866888705", "181738643008782346"]
+
+class PluginStore:
+    def __init__(self) -> None:
+        self.loop = get_event_loop()
+        self.bot = Bot(command_prefix="$")
+        self.server = Application(loop=self.loop)
+        self.pending_messages = {}
+        self.index_page = open(path.join(path.dirname(__file__), 'templates/plugin_browser.html')).read()
+
+        self.register_commands()
+        self.server.add_routes([
+            get("/", self.index),
+            static("/static", path.join(path.dirname(__file__), 'static')),
+            get("/get_plugins", self.get_plugins),
+            get("/search", self.search_plugins)
+        ])
+        self.loop.create_task(self.bot.start(getenv("DISCORD_TOKEN")))
+
+    def run(self):
+        async def _(self):
+            self.database = await Database()
+        self.loop.create_task(_(self))
+        run_app(self.server, host="0.0.0.0", port="5566", access_log=None, loop=self.loop)
+
+    async def index(self, request):
+        return Response(text=open(path.join(path.dirname(__file__), 'templates/plugin_browser.html')).read(), content_type="text/html")
+
+    async def get_plugins(self, request):
+        plugins = await self.database.get_plugins()
+        return json_response([i.__dict__() for i in plugins])
+    
+    async def search_plugins(self, request):
+        query = request.query.get("query")
+        tags = request.query.get("tags")
+        if tags:
+            tags = [i.strip() for i in tags.split(",")]
+        plugins = await self.database.search(query, tags)
+        return json_response([i.__dict__() for i in plugins])
+
+    async def approve(self, artifact, version, author, plugin):
+        await self.database.set_pending(artifact, version, 0)
+        try:
+            await author.send_message("Your plugin {} ({}) has been approved and is now listed on the plugin browser!".format(artifact, version))
+        except:
+            pass
+        embed=Embed(title="{}#{} | {}".format(author.name, author.discriminator, artifact.split("/")[0]), description=plugin.description, color=0x213997)
+        embed.set_author(name=artifact.split("/")[-1], 
+        icon_url="https://cdn.tzatzikiweeb.moe/file/steam-deck-homebrew/SDHomeBrewwwww.png", url="https://github.com/{}".format(artifact))
+        embed.set_thumbnail(url="https://cdn.tzatzikiweeb.moe/file/steam-deck-homebrew/")
+        await self.bot.get_channel(int(getenv("ANNOUNCEMENT_CHANNEL"))).send(embed=embed)
+
+    async def reject(self, artifact, version, author):
+        await author.send_message("Your plugin {} ({}) has been rejected.".format(artifact, version))
+        await self.database.remove_plugin(artifact, version)
+
+    def register_commands(self):
+        @self.bot.command()
+        async def submit(ctx, artifact, version):
+            json, hash = await get_publish_json(artifact, version)
+            if not json:
+                return await ctx.send("Either that artifact does not exist, or it does not have a publish.json file.")
+            if json["discord_id"] != str(ctx.author.id):
+                return await ctx.send("The Discord ID in publish.json does not match yours. You can only submit your own plugins!")
+            try:
+                plugin = Plugin(
+                    artifact,
+                    version, 1,
+                    ctx.author.name+"#"+ctx.author.discriminator,
+                    json["description"],
+                    json["tags"],
+                    hash
+                )
+                await self.database.insert_plugin(plugin)
+                msg = await self.bot.get_channel(int(getenv("APPROVAL_CHANNEL"))).send("https://github.com/{}/releases/tag/{}".format(artifact, version))
+                await msg.add_reaction("✅")
+                await msg.add_reaction("❎")
+                self.pending_messages[str(msg.id)] = (artifact, version, ctx.author, plugin)
+                return await ctx.send("The artifact {} has be queued for admin approval.".format(artifact))
+            except KeyError as e:
+                return await ctx.send("Your publish.json is missing a required field: {}".format(e))
+
+        @self.bot.event
+        async def on_reaction_add(reaction, user):
+            if str(user.id) not in ADMINS and not await self.database.is_approver(str(user.id)):
+                return
+            msg = self.pending_messages.pop(str(reaction.message.id), None)
+            if not msg:
+                return
+            if str(reaction.emoji) == "✅":
+                await self.approve(*msg)
+            elif str(reaction.emoji) == "❎":
+                await self.reject(*msg)
+
+        @self.bot.command()
+        async def approve(ctx, artifact, version):
+            if not str(ctx.author.id) in ADMINS and not await self.database.is_approver(str(ctx.author.id)):
+                return
+            plugins = await self.database.get_plugins(pending=1)
+            for i in plugins:
+                if i.artifact == artifact and i.version == version:
+                    member = utils.get(ctx.message.guild.members, name=i.name.split("#")[0], discriminator=i.name.split("#")[1])
+                    return await self.approve(artifact, version, member, i)
+
+        @self.bot.command()
+        async def reject(ctx, artifact, version):
+            if not str(ctx.author.id) in ADMINS or not await self.database.is_approver(str(ctx.author.id)):
+                return
+            plugins = await self.database.get_plugins(pending=1)
+            for i in plugins:
+                if i.artifact == artifact and i.version == version:
+                    member = utils.get(ctx.message.guild.members, name=i.name.split("#")[0], discriminator=i.name.split("#")[1])
+                    return await self.reject(artifact, version, member, i)
+
+        @self.bot.command()
+        async def add_approver(ctx):
+            if not str(ctx.author.id) in ADMINS:
+                return
+            mention = ctx.message.mentions[0]
+            author_id = ctx.author.id
+            await self.database.add_approver(mention.id, author_id)
+            return await ctx.send("Added {} as approver".format(mention.name))
+
+        @self.bot.command()
+        async def remove_approver(ctx):
+            if not str(ctx.author.id) in ADMINS:
+                return
+            mention = ctx.message.mentions[0]
+            await self.database.remove_approver(mention.id)
+            return await ctx.send("Removed {} as approver".format(mention.name))
+            
+if __name__ == "__main__":
+    PluginStore().run()
