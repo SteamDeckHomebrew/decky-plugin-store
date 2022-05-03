@@ -4,17 +4,17 @@ from os import getenv
 class Plugin:
     def __init__(self, *args) -> None:
         self.artifact = args[0]
-        self.version = args[1]
         self.pending = args[2]
         self.author = args[3]
         self.description = args[4]
         self.tags = args[5].split(",") if type(args[5]) == str else args[5]
         self.hash = args[6]
+        self.versions = []
     
     def __dict__(self):
         return {
             "artifact": self.artifact,
-            "version": self.version,
+            "versions": self.versions,
             "author": self.author,
             "description": self.description,
             "tags": self.tags,
@@ -79,9 +79,16 @@ class _Database:
         await self.db.commit()
 
     async def get_plugins(self, pending=0):
-        cursor = await self.db.execute("SELECT * FROM plugins WHERE pending = ?", (pending,))
-        rows = await cursor.fetchall()
-        return [Plugin(*i) for i in rows]
+        cursor = await self.db.execute("SELECT * FROM plugins WHERE pending = ? GROUP BY artifact", (pending,))
+        plugin_rows = await cursor.fetchall()
+        r = []
+        for i in plugin_rows:
+            p = Plugin(*i)
+            cursor = await self.db.execute("SELECT version, hash FROM plugins WHERE artifact = ? AND pending = ? ORDER BY version DESC", (p.artifact, pending,))
+            versions = await cursor.fetchall()
+            p.versions = {i[0]: i[1] for i in versions}
+            r.append(p)
+        return r
     
     async def search(self, query="", tags=[]):
         if not query and not tags:
@@ -99,6 +106,14 @@ class _Database:
             for i,v in enumerate(tags):
                 query_string += "tags LIKE ? " + ("AND " if i < len(tags)-1 else "")
                 params.append("%{}%".format(v))
+        query_string += "GROUP BY artifact"
         cursor = await self.db.execute(query_string, tuple(params))
-        rows = await cursor.fetchall()
-        return [Plugin(*i) for i in rows]
+        plugin_rows = await cursor.fetchall()
+        r = []
+        for i in plugin_rows:
+            p = Plugin(*i)
+            cursor = await self.db.execute("SELECT version, hash FROM plugins WHERE artifact = ? AND pending = 0 ORDER BY version DESC", (p.artifact,))
+            versions = await cursor.fetchall()
+            p.versions = {i[0]: i[1] for i in versions}
+            r.append(p)
+        return r

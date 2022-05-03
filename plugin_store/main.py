@@ -31,7 +31,7 @@ class PluginStore:
         async def _(self):
             self.database = await Database()
         self.loop.create_task(_(self))
-        run_app(self.server, host="0.0.0.0", port="5566", access_log=None, loop=self.loop)
+        run_app(self.server, host="0.0.0.0", port="5566", access_log=None)
 
     async def index(self, request):
         return Response(text=self.index_page, content_type="text/html")
