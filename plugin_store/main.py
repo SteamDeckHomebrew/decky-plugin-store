@@ -34,7 +34,7 @@ class PluginStore:
         run_app(self.server, host="0.0.0.0", port="5566", access_log=None, loop=self.loop)
 
     async def index(self, request):
-        return Response(text=open(path.join(path.dirname(__file__), 'templates/plugin_browser.html')).read(), content_type="text/html")
+        return Response(text=self.index_page, content_type="text/html")
 
     async def get_plugins(self, request):
         plugins = await self.database.get_plugins()
@@ -68,18 +68,22 @@ class PluginStore:
         @self.bot.command()
         async def submit(ctx, artifact, version):
             json, hash = await get_publish_json(artifact, version)
-            if not json:
-                return await ctx.send("Either that artifact does not exist, or it does not have a publish.json file.")
-            if json["discord_id"] != str(ctx.author.id):
-                return await ctx.send("The Discord ID in publish.json does not match yours. You can only submit your own plugins!")
+            if not json or not "publish" in json:
+                return await ctx.send("Either that artifact does not exist, or it does not have a publish field.")
+            if json["publish"]["discord_id"] != str(ctx.author.id):
+                return await ctx.send("The Discord ID in publish does not match yours. You can only submit your own plugins!")
             try:
+                tags = json["publish"]["tags"]
+                try:
+                    tags.remove("root")
+                except:
+                    pass
+                if "root" in json["flags"]:
+                    tags.append("root")
                 plugin = Plugin(
-                    artifact,
-                    version, 1,
-                    ctx.author.name+"#"+ctx.author.discriminator,
-                    json["description"],
-                    json["tags"],
-                    hash
+                    artifact, version, 1,
+                    f"{ctx.author.name}#{ctx.author.discriminator} | {json['author']}",
+                    json["publish"]["description"], tags, hash
                 )
                 await self.database.insert_plugin(plugin)
                 msg = await self.bot.get_channel(int(getenv("APPROVAL_CHANNEL"))).send("https://github.com/{}/releases/tag/{}".format(artifact, version))
@@ -88,7 +92,7 @@ class PluginStore:
                 self.pending_messages[str(msg.id)] = (artifact, version, ctx.author, plugin)
                 return await ctx.send("The artifact {} has be queued for admin approval.".format(artifact))
             except KeyError as e:
-                return await ctx.send("Your publish.json is missing a required field: {}".format(e))
+                return await ctx.send("Your plugin.json is missing a required field: {}".format(e))
 
         @self.bot.event
         async def on_reaction_add(reaction, user):

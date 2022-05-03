@@ -8,14 +8,14 @@ from hashlib import sha256
 
 def _get_publish_json(zip):
     zip_file = ZipFile(zip)
-    publish_json = None
+    plugin_json = None
     for file in zip_file.namelist():
-        if "publish.json" in file:
-            publish_json = file
+        if "plugin.json" in file:
+            plugin_json = file
             break
-    if not publish_json:
+    if not plugin_json:
         return None
-    return (load(zip_file.open(publish_json)), sha256(zip.getbuffer()).hexdigest())
+    return (load(zip_file.open(plugin_json)), sha256(zip.getbuffer()).hexdigest())
 
 async def get_publish_json(artifact, version):
     async with ClientSession() as client:

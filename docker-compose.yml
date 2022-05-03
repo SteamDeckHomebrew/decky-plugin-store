@@ -7,6 +7,13 @@ services:
         - ANNOUNCEMENT_CHANNEL=CHANNEL_ID_FOR_RELEASE_ANNOUNCEMENTS
         - APPROVAL_CHANNEL=CHANNEL_ID_FOR_APPROVAL_PROMPTS
         - DISCORD_TOKEN=YOUR_DISCORD_TOKEN
+        - DB_PATH=/db/plugin_store.db
+    volumes:
+        - ./database:/db
     networks:
-        - database-network
+        - plugins-network
     restart: unless-stopped
+
+networks:
+  plugins-network:
+    driver: bridge

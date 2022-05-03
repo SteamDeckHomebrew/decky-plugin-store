@@ -65,7 +65,7 @@ class _Database:
     async def insert_plugin(self, plugin):
         await self.db.execute("""
         INSERT INTO plugins(artifact, version, author, description, tags, hash) 
-        VALUES(?, ?, ?, ?, ?)
+        VALUES(?, ?, ?, ?, ?, ?)
         """, (plugin.artifact, plugin.version, plugin.author, plugin.description, ",".join(plugin.tags), plugin.hash,))
 
     async def set_pending(self, artifact, version, pending):
