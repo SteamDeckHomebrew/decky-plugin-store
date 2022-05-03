@@ -2,7 +2,7 @@ from os import getenv, path
 from discord.ext.commands import Bot
 from discord import Embed
 from discord import utils
-from aiohttp.web import Application, get, json_response, static, Response, run_app
+from aiohttp.web import Application, get, json_response, Response, run_app
 from database import Database
 from plugin_parser import get_publish_json
 from database import Plugin
@@ -21,7 +21,6 @@ class PluginStore:
         self.register_commands()
         self.server.add_routes([
             get("/", self.index),
-            static("/static", path.join(path.dirname(__file__), 'static')),
             get("/get_plugins", self.get_plugins),
             get("/search", self.search_plugins)
         ])
@@ -31,7 +30,7 @@ class PluginStore:
         async def _(self):
             self.database = await Database()
         self.loop.create_task(_(self))
-        run_app(self.server, host="0.0.0.0", port="5566", access_log=None)
+        run_app(self.server, host="0.0.0.0", port="5566", access_log=None, loop=self.loop)
 
     async def index(self, request):
         return Response(text=self.index_page, content_type="text/html")
