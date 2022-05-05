@@ -4,6 +4,7 @@ from os import getenv
 class Plugin:
     def __init__(self, *args) -> None:
         self.artifact = args[0]
+        self.version = args[1]
         self.pending = args[2]
         self.author = args[3]
         self.description = args[4]

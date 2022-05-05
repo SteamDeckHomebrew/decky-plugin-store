@@ -2,7 +2,7 @@ from os import getenv, path
 from discord.ext.commands import Bot
 from discord import Embed
 from discord import utils
-from aiohttp.web import Application, get, json_response, static, Response, run_app
+from aiohttp.web import Application, get, json_response, Response, run_app
 from aiohttp import ClientSession
 from database import Database
 from plugin_parser import get_publish_json
@@ -22,7 +22,7 @@ async def upload_image(artifact, binary):
             if not res.status == 200:
                 return print("B2 LOGIN ERROR ", await res.read())
             res = await res.json()
-                            
+
             async with web.post(
                 f"{res['apiUrl']}/b2api/v2/b2_get_upload_url",
                 json={"bucketId": getenv("B2_BUCKET_ID")},
@@ -52,7 +52,6 @@ class PluginStore:
         self.register_commands()
         self.server.add_routes([
             get("/", self.index),
-            static("/static", path.join(path.dirname(__file__), 'static')),
             get("/get_plugins", self.get_plugins),
             get("/search", self.search_plugins)
         ])
@@ -62,7 +61,7 @@ class PluginStore:
         async def _(self):
             self.database = await Database()
         self.loop.create_task(_(self))
-        run_app(self.server, host="0.0.0.0", port="5566", access_log=None)
+        run_app(self.server, host="0.0.0.0", port="5566", access_log=None, loop=self.loop)
 
     async def index(self, request):
         return Response(text=self.index_page, content_type="text/html")
@@ -89,6 +88,7 @@ class PluginStore:
         embed.set_author(name=artifact.split("/")[-1], 
         icon_url="https://cdn.tzatzikiweeb.moe/file/steam-deck-homebrew/SDHomeBrewwwww.png", url="https://github.com/{}".format(artifact))
         embed.set_thumbnail(url="https://cdn.tzatzikiweeb.moe/file/steam-deck-homebrew/")
+        embed.set_image(url=f"https://cdn.tzatzikiweeb.moe/file/steam-deck-homebrew/artifact_images/{artifact.replace('/', '_')}.png")
         await self.bot.get_channel(int(getenv("ANNOUNCEMENT_CHANNEL"))).send(embed=embed)
 
     async def reject(self, artifact, version, author):
@@ -120,7 +120,7 @@ class PluginStore:
                     img = ctx.message.attachments[0]
                     if not "image" in img.content_type or img.height > img.width or not img.filename.endswith("png"):
                         return await ctx.send("Not an image or invalid image (Needs to be landscape) or not PNG.")
-                    await self.upload_image(artifact, await img.read())
+                    await upload_image(artifact, await img.read())
 
                 await self.database.insert_plugin(plugin)
                 msg = await self.bot.get_channel(int(getenv("APPROVAL_CHANNEL"))).send("https://github.com/{}/releases/tag/{}".format(artifact, version))
