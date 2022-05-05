@@ -8,6 +8,9 @@ services:
         - APPROVAL_CHANNEL=CHANNEL_ID_FOR_APPROVAL_PROMPTS
         - DISCORD_TOKEN=YOUR_DISCORD_TOKEN
         - DB_PATH=/db/plugin_store.db
+        - B2_APP_KEY_ID=BACKBLAZE_KEY_ID
+        - B2_APP_KEY=BACKBLAZE_AUTH_KEY
+        - B2_BUCKET_ID=BACKBLAZE_BUCKET_ID
     volumes:
         - ./database:/db
     networks:

@@ -3,12 +3,43 @@ from discord.ext.commands import Bot
 from discord import Embed
 from discord import utils
 from aiohttp.web import Application, get, json_response, static, Response, run_app
+from aiohttp import ClientSession
 from database import Database
 from plugin_parser import get_publish_json
 from database import Plugin
 from asyncio import get_event_loop
+from base64 import b64encode
+from hashlib import sha1
 
 ADMINS = ["317602018866888705", "181738643008782346"]
+
+async def upload_image(artifact, binary):
+    async with ClientSession() as web:
+        auth_str = f"{getenv('B2_APP_KEY_ID')}:{getenv('B2_APP_KEY')}".encode("utf-8")
+        async with web.get("https://api.backblazeb2.com/b2api/v2/b2_authorize_account", headers={
+            "Authorization": f"Basic: {b64encode(auth_str).decode('utf-8')}"
+        }) as res:
+            if not res.status == 200:
+                return print("B2 LOGIN ERROR ", await res.read())
+            res = await res.json()
+                            
+            async with web.post(
+                f"{res['apiUrl']}/b2api/v2/b2_get_upload_url",
+                json={"bucketId": getenv("B2_BUCKET_ID")},
+                headers={"Authorization": res['authorizationToken']}
+            ) as res:
+                if not res.status == 200:
+                    return print("B2 GET_UPLOAD_URL ERROR ", await res.read()) 
+                res = await res.json()
+
+                await web.post(res["uploadUrl"], data=binary,
+                headers={
+                    "Authorization": res["authorizationToken"],
+                    "Content-Type": "b2/x-auto",
+                    "Content-Length": str(len(binary)),
+                    "X-Bz-Content-Sha1": sha1(binary).hexdigest(),
+                    "X-Bz-File-Name": f"artifact_images/{artifact.replace('/', '_')}.png"
+                })
 
 class PluginStore:
     def __init__(self) -> None:
@@ -83,8 +114,14 @@ class PluginStore:
                 plugin = Plugin(
                     artifact, version, 1,
                     f"{ctx.author.name}#{ctx.author.discriminator} | {json['author']}",
-                    json["publish"]["description"], tags, hash
+                    json["publish"]["description"], tags, hash, str(ctx.author.id)
                 )
+                if ctx.message.attachments:
+                    img = ctx.message.attachments[0]
+                    if not "image" in img.content_type or img.height > img.width or not img.filename.endswith("png"):
+                        return await ctx.send("Not an image or invalid image (Needs to be landscape) or not PNG.")
+                    await self.upload_image(artifact, await img.read())
+
                 await self.database.insert_plugin(plugin)
                 msg = await self.bot.get_channel(int(getenv("APPROVAL_CHANNEL"))).send("https://github.com/{}/releases/tag/{}".format(artifact, version))
                 await msg.add_reaction("✅")
