@@ -4,11 +4,13 @@ from os import getenv
 class Plugin:
     def __init__(self, *args) -> None:
         self.artifact = args[0]
+        self.version = args[1]
         self.pending = args[2]
         self.author = args[3]
         self.description = args[4]
         self.tags = args[5].split(",") if type(args[5]) == str else args[5]
         self.hash = args[6]
+        self.discord_id = args[7]
         self.versions = []
     
     def __dict__(self):
@@ -31,7 +33,8 @@ async def Database():
             "author"	TEXT,
             "description"	TEXT,
             "tags"	TEXT,
-            "hash"  TEXT
+            "hash"  TEXT,
+            "discord_id" TEXT
         );
     """,
     """
@@ -64,9 +67,9 @@ class _Database:
 
     async def insert_plugin(self, plugin):
         await self.db.execute("""
-        INSERT INTO plugins(artifact, version, author, description, tags, hash) 
-        VALUES(?, ?, ?, ?, ?, ?)
-        """, (plugin.artifact, plugin.version, plugin.author, plugin.description, ",".join(plugin.tags), plugin.hash,))
+        INSERT INTO plugins(artifact, version, author, description, tags, hash, discord_id) 
+        VALUES(?, ?, ?, ?, ?, ?, ?)
+        """, (plugin.artifact, plugin.version, plugin.author, plugin.description, ",".join(plugin.tags), plugin.hash, plugin.discord_id,))
 
     async def set_pending(self, artifact, version, pending):
         await self.db.execute("""

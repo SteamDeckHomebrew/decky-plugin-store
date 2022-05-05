@@ -4,12 +4,15 @@ services:
     build: .
     container_name: plugin_browser
     environment:
-        - ANNOUNCEMENT_CHANNEL=CHANNEL_ID_FOR_RELEASE_ANNOUNCEMENTS
-        - APPROVAL_CHANNEL=CHANNEL_ID_FOR_APPROVAL_PROMPTS
-        - DISCORD_TOKEN=YOUR_DISCORD_TOKEN
+        - ANNOUNCEMENT_CHANNEL=CHANNEL_ID_FOR_PLUGIN_SHARE
+        - APPROVAL_CHANNEL=CHANNEL_ID_FOR_ADMIN_APPROVAL
+        - DISCORD_TOKEN=DISCORD_BOT_TOKEN
         - DB_PATH=/db/plugin_store.db
+        - B2_APP_KEY_ID=FOR_IMAGE_UPLOAD
+        - B2_APP_KEY=FOR_IMAGE_UPLOAD
+        - B2_BUCKET_ID=FOR_IMAGE_UPLOAD
     volumes:
-        - ./database:/db
+        - ~/database:/db
     networks:
         - plugins-network
     restart: unless-stopped
