@@ -34,7 +34,7 @@
                             <img v-bind:src="'https://cdn.tzatzikiweeb.moe/file/steam-deck-homebrew/artifact_images/'+plugin.artifact.replace('/', '_')+'.png'" class="img-fluid rounded-start">
                         </div>
                         <div class="col">
-                            <h5 class="card-title">{{ plugin.artifact }}</h5>
+                            <h5 class="card-title"><a class="link-dark" v-bind:href="'https://github.com/'+plugin.artifact">{{ plugin.artifact }}</a></h5>
                             <p class="card-text">
                                 <span class="badge alert-dark" style="margin-right: 5px;">Author: {{ plugin.author
                                     }}</span>
