@@ -93,7 +93,9 @@ class _Database:
             r.append(p)
         return r
     
-    async def search(self, query="", tags=[]):
+    async def search(self, query="", tags = None):
+        if tags is None:
+            tags = []
         if not query and not tags:
             return await self.get_plugins()
         query_string = "SELECT * FROM plugins WHERE pending = 0 AND "
@@ -102,13 +104,13 @@ class _Database:
         if query:
             query_string += "artifact LIKE ? "
             _and = True
-            params.append("%{}%".format(query))
+            params.append(f"%{query}%")
         if tags:
             if _and:
                 query_string += "AND "
             for i,v in enumerate(tags):
                 query_string += "tags LIKE ? " + ("AND " if i < len(tags)-1 else "")
-                params.append("%{}%".format(v))
+                params.append(f"%{v}%")
         query_string += "GROUP BY artifact"
         cursor = await self.db.execute(query_string, tuple(params))
         plugin_rows = await cursor.fetchall()
