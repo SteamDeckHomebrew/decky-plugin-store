@@ -17,19 +17,19 @@ async def upload_image(artifact, binary):
     async with ClientSession() as web:
         auth_str = f"{getenv('B2_APP_KEY_ID')}:{getenv('B2_APP_KEY')}".encode("utf-8")
         async with web.get("https://api.backblazeb2.com/b2api/v2/b2_authorize_account", headers={
-            "Authorization": f"Basic: {b64encode(auth_str).decode('utf-8')}"
-        }) as res:
-            if not res.status == 200:
+                    "Authorization": f"Basic: {b64encode(auth_str).decode('utf-8')}"
+                }) as res:
+            if res.status != 200:
                 return print("B2 LOGIN ERROR ", await res.read())
             res = await res.json()
 
             async with web.post(
-                f"{res['apiUrl']}/b2api/v2/b2_get_upload_url",
-                json={"bucketId": getenv("B2_BUCKET_ID")},
-                headers={"Authorization": res['authorizationToken']}
-            ) as res:
-                if not res.status == 200:
-                    return print("B2 GET_UPLOAD_URL ERROR ", await res.read()) 
+                            f"{res['apiUrl']}/b2api/v2/b2_get_upload_url",
+                            json={"bucketId": getenv("B2_BUCKET_ID")},
+                            headers={"Authorization": res['authorizationToken']}
+                        ) as res:
+                if res.status != 200:
+                    return print("B2 GET_UPLOAD_URL ERROR ", await res.read())
                 res = await res.json()
 
                 await web.post(res["uploadUrl"], data=binary,
@@ -81,25 +81,28 @@ class PluginStore:
     async def approve(self, artifact, version, author, plugin):
         await self.database.set_pending(artifact, version, 0)
         try:
-            await author.send_message("Your plugin {} ({}) has been approved and is now listed on the plugin browser!".format(artifact, version))
+            await author.send_message(f"Your plugin {artifact} ({version}) has been approved and is now listed on the plugin browser!")
+
         except:
             pass
-        embed=Embed(title="{}#{} | {}".format(author.name, author.discriminator, artifact.split("/")[0]), description=plugin.description, color=0x213997)
-        embed.set_author(name=artifact.split("/")[-1], 
-        icon_url="https://cdn.tzatzikiweeb.moe/file/steam-deck-homebrew/SDHomeBrewwwww.png", url="https://github.com/{}".format(artifact))
+        embed = Embed(title=f'{author.name}#{author.discriminator} | {artifact.split("/")[0]}', description=plugin.description, color=0x213997)
+
+        embed.set_author(name=artifact.split("/")[-1], icon_url="https://cdn.tzatzikiweeb.moe/file/steam-deck-homebrew/SDHomeBrewwwww.png", url=f"https://github.com/{artifact}")
+
         embed.set_thumbnail(url="https://cdn.tzatzikiweeb.moe/file/steam-deck-homebrew/")
         embed.set_image(url=f"https://cdn.tzatzikiweeb.moe/file/steam-deck-homebrew/artifact_images/{artifact.replace('/', '_')}.png")
         await self.bot.get_channel(int(getenv("ANNOUNCEMENT_CHANNEL"))).send(embed=embed)
 
     async def reject(self, artifact, version, author):
-        await author.send_message("Your plugin {} ({}) has been rejected.".format(artifact, version))
+        await author.send_message(f"Your plugin {artifact} ({version}) has been rejected.")
+
         await self.database.remove_plugin(artifact, version)
 
     def register_commands(self):
         @self.bot.command()
         async def submit(ctx, artifact, version):
             json, hash = await get_publish_json(artifact, version)
-            if not json or not "publish" in json:
+            if not json or "publish" not in json:
                 return await ctx.send("Either that artifact does not exist, or it does not have a publish field.")
             if json["publish"]["discord_id"] != str(ctx.author.id):
                 return await ctx.send("The Discord ID in publish does not match yours. You can only submit your own plugins!")
@@ -118,18 +121,20 @@ class PluginStore:
                 )
                 if ctx.message.attachments:
                     img = ctx.message.attachments[0]
-                    if not "image" in img.content_type or img.height > img.width or not img.filename.endswith("png"):
+                    if "image" not in img.content_type or img.height > img.width or not img.filename.endswith("png"):
                         return await ctx.send("Not an image or invalid image (Needs to be landscape) or not PNG.")
                     await upload_image(artifact, await img.read())
 
                 await self.database.insert_plugin(plugin)
-                msg = await self.bot.get_channel(int(getenv("APPROVAL_CHANNEL"))).send("https://github.com/{}/releases/tag/{}".format(artifact, version))
+                msg = await self.bot.get_channel(int(getenv("APPROVAL_CHANNEL"))).send(f"https://github.com/{artifact}/releases/tag/{version}")
+
                 await msg.add_reaction("✅")
                 await msg.add_reaction("❎")
                 self.pending_messages[str(msg.id)] = (artifact, version, ctx.author, plugin)
-                return await ctx.send("The artifact {} has be queued for admin approval.".format(artifact))
+                return await ctx.send(f"The artifact {artifact} has be queued for admin approval.")
+
             except KeyError as e:
-                return await ctx.send("Your plugin.json is missing a required field: {}".format(e))
+                return await ctx.send(f"Your plugin.json is missing a required field: {e}")
 
         @self.bot.event
         async def on_reaction_add(reaction, user):
@@ -145,7 +150,7 @@ class PluginStore:
 
         @self.bot.command()
         async def approve(ctx, artifact, version):
-            if not str(ctx.author.id) in ADMINS and not await self.database.is_approver(str(ctx.author.id)):
+            if str(ctx.author.id) not in ADMINS and not await self.database.is_approver(str(ctx.author.id)):
                 return
             plugins = await self.database.get_plugins(pending=1)
             for i in plugins:
@@ -155,7 +160,7 @@ class PluginStore:
 
         @self.bot.command()
         async def reject(ctx, artifact, version):
-            if not str(ctx.author.id) in ADMINS or not await self.database.is_approver(str(ctx.author.id)):
+            if str(ctx.author.id) not in ADMINS or not await self.database.is_approver(str(ctx.author.id)):
                 return
             plugins = await self.database.get_plugins(pending=1)
             for i in plugins:
@@ -165,20 +170,20 @@ class PluginStore:
 
         @self.bot.command()
         async def add_approver(ctx):
-            if not str(ctx.author.id) in ADMINS:
+            if str(ctx.author.id) not in ADMINS:
                 return
             mention = ctx.message.mentions[0]
             author_id = ctx.author.id
             await self.database.add_approver(mention.id, author_id)
-            return await ctx.send("Added {} as approver".format(mention.name))
+            return await ctx.send(f"Added {mention.name} as approver")
 
         @self.bot.command()
         async def remove_approver(ctx):
-            if not str(ctx.author.id) in ADMINS:
+            if str(ctx.author.id) not in ADMINS:
                 return
             mention = ctx.message.mentions[0]
             await self.database.remove_approver(mention.id)
-            return await ctx.send("Removed {} as approver".format(mention.name))
+            return await ctx.send(f"Removed {mention.name} as approver")
             
 if __name__ == "__main__":
     PluginStore().run()
