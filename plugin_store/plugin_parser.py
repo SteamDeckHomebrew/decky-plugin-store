@@ -8,18 +8,15 @@ from hashlib import sha256
 
 def _get_publish_json(zip):
     zip_file = ZipFile(zip)
-    plugin_json = None
-    for file in zip_file.namelist():
-        if "plugin.json" in file:
-            plugin_json = file
-            break
+    plugin_json = next((file for file in zip_file.namelist() if "plugin.json" in file), None)
+
     if not plugin_json:
         return None
     return (load(zip_file.open(plugin_json)), sha256(zip.getbuffer()).hexdigest())
 
 async def get_publish_json(artifact, version):
     async with ClientSession() as client:
-        url = "https://github.com/{}/archive/refs/tags/{}.zip".format(artifact, version)
+        url = f"https://github.com/{artifact}/archive/refs/tags/{version}.zip"
         res = await client.get(url)
         if res.status == 200:
             data = await res.read()
