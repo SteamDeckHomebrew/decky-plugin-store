@@ -1,5 +1,6 @@
 from . import Base
 from sqlalchemy import Column, Integer, Text, ForeignKey, DateTime
+from sqlalchemy.orm import relationship
 
 class Version(Base):
     __tablename__ = "versions"
@@ -9,3 +10,9 @@ class Version(Base):
     name = Column(Text)
     hash = Column(Text)
     added_on = Column(DateTime)
+
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "hash": self.hash
+        }
