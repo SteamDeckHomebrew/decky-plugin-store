@@ -17,12 +17,19 @@ class Artifact(Base):
     __tablename__ = "artifacts"
 
     id = Column(Integer, autoincrement=True, primary_key=True)
-    pending = Column(Boolean)
     name = Column(Text)
     author = Column(Text)
     description = Column(Text)
-    discord_id = Column(Text)
     tags = relationship("Tags", secondary=PluginTag)
 
     UniqueConstraint("name")
     _query_options = [selectinload(tags)]
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "author": self.author,
+            "description": self.description,
+            "tags": [i.tag for i in self.tags]
+        }

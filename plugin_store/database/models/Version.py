@@ -1,4 +1,3 @@
-from sqlite3 import Date
 from . import Base
 from sqlalchemy import Column, Integer, Text, ForeignKey, DateTime
 
