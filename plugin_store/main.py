@@ -6,7 +6,7 @@ from base64 import b64encode
 from hashlib import sha1, sha256
 from discord_webhook import AsyncDiscordWebhook, DiscordEmbed
 
-from .database.database import Database
+from database.database import Database
 
 async def b2_upload(filename, binary):
     async with ClientSession() as web:
@@ -43,7 +43,6 @@ class PluginStore:
         self.database = Database(getenv("DB_PATH"))
         self.index_page = open(path.join(path.dirname(__file__), 'templates/plugin_browser.html')).read()
 
-        self.register_commands()
         self.server.add_routes([
             get("/", self.index),
             get("/plugins", self.plugins),

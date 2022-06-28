@@ -68,9 +68,9 @@ class Database:
         return version
 
     async def search(self, name=None, tags=None, limit=50, page=0):
-        statement = select(Artifact).options(Artifact._query_options).offset(limit * page)
+        statement = select(Artifact).options(*Artifact._query_options).offset(limit * page)
         if name:
-            name_select = select(Artifact).where(Artifact.name.like(f"%{name}%"))
+            name_select = select(Artifact).where(Artifact.name.like(f"%{name}%")).options(*Artifact._query_options)
             content = (await self.session.execute(name_select)).scalars().all()
             if not content:
                 return []
@@ -82,5 +82,5 @@ class Database:
         return result or []
 
     async def get_plugin_by_name(self, name):
-        statement = select(Artifact).options(Artifact._query_options).where(Artifact.name == name)
+        statement = select(Artifact).options(*Artifact._query_options).where(Artifact.name == name)
         return (await self.session.execute(statement)).scalars().all()

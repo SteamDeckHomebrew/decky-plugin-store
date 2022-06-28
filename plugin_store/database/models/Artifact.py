@@ -20,11 +20,10 @@ class Artifact(Base):
     name = Column(Text)
     author = Column(Text)
     description = Column(Text)
-    tags = relationship("tags", secondary=PluginTag)
-    versions = relationship("versions")
+    tags = relationship("Tag", secondary=PluginTag)
+    versions = relationship("Version")
 
     UniqueConstraint("name")
-    _query_options = [selectinload(tags), selectinload(versions)]
 
     def to_dict(self):
         return {
@@ -35,3 +34,5 @@ class Artifact(Base):
             "tags": [i.tag for i in self.tags],
             "versions": [i.to_dict() for i in self.versions]
         }
+
+Artifact._query_options = [selectinload(Artifact.tags), selectinload(Artifact.versions)]
