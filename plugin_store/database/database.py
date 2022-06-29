@@ -45,7 +45,7 @@ class Database:
             tags = [Tag(tag=i) for i in kwargs["tags"]]
         )
         async with self.lock:
-            self.session.add(plugin).options(*Artifact._query_options)
+            self.session.add(plugin)
             try:
                 for tag in kwargs.get("tags", []):
                     res = await self._get_or_insert(Tag, tag=tag)
@@ -54,7 +54,7 @@ class Database:
                 await nested.rollback()
                 raise e
             await self.session.commit()
-            return plugin.id
+            return await self.get_plugin_by_id(plugin.id)
     
     async def insert_version(self, artifact_id, **kwargs):
         version = Version(
@@ -85,6 +85,13 @@ class Database:
     async def get_plugin_by_name(self, name):
         statement = select(Artifact).options(*Artifact._query_options).where(Artifact.name == name)
         try:
-            return (await self.session.execute(statement)).scalars().one()
+            return (await self.session.execute(statement)).scalars().first()
+        except NoResultFound:
+            return None
+    
+    async def get_plugin_by_id(self, id):
+        statement = select(Artifact).options(*Artifact._query_options).where(Artifact.id == id)
+        try:
+            return (await self.session.execute(statement)).scalars().first()
         except NoResultFound:
             return None

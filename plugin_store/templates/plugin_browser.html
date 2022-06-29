@@ -31,11 +31,11 @@
           <div class="row">
             <div class="col-3">
               <img
-                v-bind:src="'https://cdn.tzatzikiweeb.moe/file/steam-deck-homebrew/artifact_images/'+plugin.artifact.replace('/', '_')+'.png'"
+                v-bind:src="'https://cdn.tzatzikiweeb.moe/file/steam-deck-homebrew/artifact_images/'+plugin.name.replace('/', '_')+'.png'"
                 class="img-fluid rounded-start">
             </div>
             <div class="col">
-              <h5 class="card-title">{{ plugin.artifact }}</h5>
+              <h5 class="card-title">{{ plugin.name }}</h5>
               <p class="card-text">
                 <span class="badge alert-dark" style="margin-right: 5px;">Author: {{ plugin.author
                   }}</span>
@@ -49,14 +49,14 @@
               <p class="card-text">{{ plugin.description }}</p>
               <div class="btn-group">
                 <button type="button" class="btn btn-primary"
-                  v-on:click="installPlugin(plugin.artifact, plugin.selected_version)">Install {{
-                  plugin.selected_version }}</button>
+                  v-on:click="installPlugin(plugin.name, plugin.selected_version)">Install {{
+                  plugin.selected_version.name }}</button>
                 <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split"
                   data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 </button>
                 <div class="dropdown-menu">
-                  <a v-for="hash, version in plugin.versions" class="dropdown-item"
-                    v-on:click="plugin.selected_version = version">{{ version }}</a>
+                  <a v-for="version in plugin.versions" class="dropdown-item"
+                    v-on:click="plugin.selected_version = version">{{ version.name }}</a>
                 </div>
               </div>
             </div>
@@ -77,7 +77,7 @@
         searchPlugins: async function () {
           let data = await (await fetch(`/plugins?query=${this.search_input}`)).json();
           for (const plugin in data) {
-            data[plugin]['selected_version'] = Object.keys(data[plugin].versions)[0];
+            data[plugin]['selected_version'] = data[plugin].versions[0];
           }
           this.plugins = data;
         },
@@ -85,7 +85,7 @@
           const formData = new FormData();
           formData.append("artifact", artifact);
           formData.append("version", version);
-          formData.append("hash", this.plugins.find(x => x.artifact == artifact).versions[version]);
+          formData.append("hash", this.plugins.find(x => x.name == artifact).selected_version.hash);
           let res = await fetch("http://localhost:1337/browser/install_plugin", {
             method: "POST",
             body: formData,
@@ -95,7 +95,7 @@
         }
       },
       mounted: function () {
-        this.loadPlugins();
+        this.searchPlugins();
       }
     }).mount('#mainBind');
   </script>

@@ -5,6 +5,7 @@ from asyncio import get_event_loop
 from base64 import b64encode
 from hashlib import sha1, sha256
 from discord_webhook import AsyncDiscordWebhook, DiscordEmbed
+import aiohttp_cors
 
 from database.database import Database
 
@@ -48,6 +49,12 @@ class PluginStore:
             get("/plugins", self.plugins),
             post("/__submit", self.submit_plugin)
         ])
+        self.cors = aiohttp_cors.setup(self.server, defaults={
+          "https://steamloopback.host": aiohttp_cors.ResourceOptions(expose_headers="*",
+                allow_headers="*")
+        })
+        for route in list(self.server.router.routes()):
+            self.cors.add(route)
 
     def run(self):
         self.loop.create_task(self.database.init())
