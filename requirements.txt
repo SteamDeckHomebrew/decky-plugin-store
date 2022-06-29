@@ -1,4 +1,4 @@
 discord.py
 aiohttp
 aiosqlite
-discord-webhook
+discord-webhook[async]

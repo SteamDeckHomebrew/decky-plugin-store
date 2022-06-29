@@ -78,7 +78,7 @@ class PluginStore:
         image_url = data["image"]
         file_bin = data["file"].file.read()
 
-        res = self.database.get_plugin_by_name(name)
+        res = await self.database.get_plugin_by_name(name)
         if not res:
             res = await self.database.insert_artifact(name=name,
             author=author,
@@ -88,7 +88,7 @@ class PluginStore:
         name=version_name,
         hash=sha256(file_bin).hexdigest()
         )
-        await b2_upload(f"versions/{ver.hash}.zip")
+        await b2_upload(f"versions/{ver.hash}.zip", file_bin)
         await self.upload_image(res, image_url)
         await self.post_announcement(res)
         return json_response(res.to_dict(), status=201)

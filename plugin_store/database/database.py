@@ -1,6 +1,7 @@
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.sql import select, insert
+from sqlalchemy.exc import NoResultFound
 from sqlalchemy import or_
 from asyncio import Lock
 from datetime import datetime
@@ -44,16 +45,16 @@ class Database:
             tags = [Tag(tag=i) for i in kwargs["tags"]]
         )
         async with self.lock:
-            self.session.add(plugin)
+            self.session.add(plugin).options(*Artifact._query_options)
             try:
                 for tag in kwargs.get("tags", []):
-                    res = self._get_or_insert(Tag, tag=tag)
+                    res = await self._get_or_insert(Tag, tag=tag)
                     await self.session.execute(insert(PluginTag).values(artifact_id=plugin.id, tag_id=res.id))
             except Exception as e:
                 await nested.rollback()
                 raise e
             await self.session.commit()
-            return plugin
+            return plugin.id
     
     async def insert_version(self, artifact_id, **kwargs):
         version = Version(
@@ -83,4 +84,7 @@ class Database:
 
     async def get_plugin_by_name(self, name):
         statement = select(Artifact).options(*Artifact._query_options).where(Artifact.name == name)
-        return (await self.session.execute(statement)).scalars().all()
+        try:
+            return (await self.session.execute(statement)).scalars().one()
+        except NoResultFound:
+            return None
