@@ -93,6 +93,8 @@ class PluginStore:
             author=author,
             description=description,
             tags=tags)
+        elif version_name in [i.name for i in res.versions]:
+            return json_response({"message": "Version already exists"}, status=400)
         ver = await self.database.insert_version(res.id,
         name=version_name,
         hash=sha256(file_bin).hexdigest()
