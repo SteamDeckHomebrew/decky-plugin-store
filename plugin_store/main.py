@@ -5,6 +5,7 @@ from asyncio import get_event_loop
 from base64 import b64encode
 from hashlib import sha1, sha256
 from discord_webhook import AsyncDiscordWebhook, DiscordEmbed
+from urllib.parse import quote
 import aiohttp_cors
 
 from database.database import Database
@@ -28,7 +29,7 @@ async def b2_upload(filename, binary):
                     return print("B2 GET_UPLOAD_URL ERROR ", await res.read()) 
                 res = await res.json()
 
-                await web.post(res["uploadUrl"], data=binary,
+                res = await web.post(res["uploadUrl"], data=binary,
                 headers={
                     "Authorization": res["authorizationToken"],
                     "Content-Type": "b2/x-auto",
@@ -36,6 +37,7 @@ async def b2_upload(filename, binary):
                     "X-Bz-Content-Sha1": sha1(binary).hexdigest(),
                     "X-Bz-File-Name": filename
                 })
+                return await res.text()
 
 class PluginStore:
     def __init__(self) -> None:
@@ -104,7 +106,7 @@ class PluginStore:
         async with ClientSession() as web:
             async with web.get(image_url) as res:
                 if res.status == 200 and res.headers.get("Content-Type") == "image/png":
-                    await b2_upload(f"artifact_images/{plugin.name}.png", await res.read())
+                    await b2_upload(f"artifact_images/{quote(plugin.name)}.png", await res.read())
 
     async def post_announcement(self, plugin):
         webhook = AsyncDiscordWebhook(url=getenv("ANNOUNCEMENT_WEBHOOK"))
