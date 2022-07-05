@@ -86,6 +86,12 @@ class PluginStore:
         version_name = data["version_name"]
         image_url = data["image"]
         file_bin = data["file"].file.read()
+        
+        if data["force"]:
+            force = bool(eval(data["force"].title()))
+
+        if force:
+            print('force: not implemented yet')
 
         res = await self.database.get_plugin_by_name(name)
         if not res:
