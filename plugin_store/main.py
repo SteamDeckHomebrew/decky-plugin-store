@@ -90,10 +90,12 @@ class PluginStore:
         if data["force"]:
             force = bool(eval(data["force"].title()))
 
-        if force:
-            self.database.remove_artifact(name)
 
         res = await self.database.get_plugin_by_name(name)
+
+        if res and force:
+            await self.database.delete_plugin(res.id)
+
         if not res:
             res = await self.database.insert_artifact(
                 name=name,
