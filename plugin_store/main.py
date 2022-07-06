@@ -49,7 +49,8 @@ class PluginStore:
         self.server.add_routes([
             get("/", self.index),
             get("/plugins", self.plugins),
-            post("/__submit", self.submit_plugin)
+            post("/__submit", self.submit_plugin),
+            post("/__delete", self.delete_plugin)
         ])
         self.cors = aiohttp_cors.setup(self.server, defaults={
           "https://steamloopback.host": aiohttp_cors.ResourceOptions(expose_headers="*",
@@ -72,6 +73,13 @@ class PluginStore:
             tags = [i.strip() for i in tags.split(",")]
         plugins = await self.database.search(query, tags)
         return json_response([i.to_dict() for i in plugins])
+    
+    async def delete_plugin(self, request):
+        if request.headers.get("Auth-Key") != getenv("SUBMIT_AUTH_KEY"):
+            return Response(status=403, text="INVALID AUTH KEY")
+        data = await request.post()
+        id = data["id"]
+        return await self.database.delete_plugin(id)        
 
     async def submit_plugin(self, request):
         if request.headers.get("Auth-Key") != getenv("SUBMIT_AUTH_KEY"):

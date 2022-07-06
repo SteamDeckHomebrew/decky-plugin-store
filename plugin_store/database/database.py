@@ -1,6 +1,6 @@
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.sql import select, insert
+from sqlalchemy.sql import select, insert, delete
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy import or_
 from asyncio import Lock
@@ -95,3 +95,7 @@ class Database:
             return (await self.session.execute(statement)).scalars().first()
         except NoResultFound:
             return None
+    
+    async def delete_plugin(self, id):
+        statement = delete(Artifact).where(Artifact.id == id)
+        return await self.session.execute(statement)
