@@ -89,13 +89,13 @@ class PluginStore:
         
         if data["force"]:
             force = data["force"].strip().title() in ["True", "1"]
-            res = None
 
 
         res = await self.database.get_plugin_by_name(name)
 
         if res and force:
             await self.database.delete_plugin(res.id)
+            res = None
 
         if not res:
             res = await self.database.insert_artifact(
