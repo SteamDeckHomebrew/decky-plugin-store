@@ -88,7 +88,7 @@ class PluginStore:
         file_bin = data["file"].file.read()
         
         if data["force"]:
-            force = bool(eval(data["force"].title()))
+            force = data["force"].strip().title() in ["True", "1"]
 
 
         res = await self.database.get_plugin_by_name(name)
