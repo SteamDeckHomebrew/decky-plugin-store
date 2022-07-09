@@ -89,6 +89,7 @@ class PluginStore:
         
         if data["force"]:
             force = data["force"].strip().title() in ["True", "1"]
+            res = None
 
 
         res = await self.database.get_plugin_by_name(name)
