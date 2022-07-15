@@ -3,3 +3,4 @@ aiohttp
 aiosqlite
 discord-webhook[async]
 aiohttp_cors
+sqlalchemy
