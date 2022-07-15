@@ -5,11 +5,11 @@ services:
     container_name: plugin_store
     environment:
         - DB_PATH=/db/plugin_store.db
-        - ANNOUNCEMENT_WEBHOOK=A_DISCORD_WEBHOOK_URL_FOR_PLUGIN_SHARE
-        - SUBMIT_AUTH_KEY=A_SHARED_KEY_BETWEEN_THE_BUILD_SERVICE_AND_STORE
-        - B2_APP_KEY_ID=FOR_IMAGE_UPLOAD
-        - B2_APP_KEY=FOR_IMAGE_UPLOAD
-        - B2_BUCKET_ID=FOR_IMAGE_UPLOAD
+        - ANNOUNCEMENT_WEBHOOK
+        - SUBMIT_AUTH_KEY
+        - B2_APP_KEY_ID
+        - B2_APP_KEY
+        - B2_BUCKET_ID
     volumes:
         - ~/database:/db
     networks:
