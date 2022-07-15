@@ -32,7 +32,7 @@ class Artifact(Base):
             "author": self.author,
             "description": self.description,
             "tags": [i.tag for i in self.tags],
-            "versions": [i.to_dict() for i in self.versions]
+            "versions": [i.to_dict() for i in reversed(self.versions)]
         }
 
 Artifact._query_options = [selectinload(Artifact.tags), selectinload(Artifact.versions)]
