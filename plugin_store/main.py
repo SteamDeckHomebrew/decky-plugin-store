@@ -94,18 +94,29 @@ class PluginStore:
         version_name = data["version_name"]
         image_url = data["image"]
         file_bin = data["file"].file.read()
+        
+        if data["force"]:
+            force = data["force"].strip().title() in ["True", "1"]
+
 
         res = await self.database.get_plugin_by_name(name)
+
+        if res and force:
+            await self.database.delete_plugin(res.id)
+            res = None
+
         if not res:
-            res = await self.database.insert_artifact(name=name,
-            author=author,
-            description=description,
-            tags=tags)
+            res = await self.database.insert_artifact(
+                name=name,
+                author=author,
+                description=description,
+                tags=tags
+            )
         elif version_name in [i.name for i in res.versions]:
             return json_response({"message": "Version already exists"}, status=400)
         ver = await self.database.insert_version(res.id,
-        name=version_name,
-        hash=sha256(file_bin).hexdigest()
+            name=version_name,
+            hash=sha256(file_bin).hexdigest()
         )
         await b2_upload(f"versions/{ver.hash}.zip", file_bin)
         await self.upload_image(res, image_url)
