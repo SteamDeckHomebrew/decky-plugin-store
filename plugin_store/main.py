@@ -94,6 +94,7 @@ class PluginStore:
         version_name = data["version_name"]
         image_url = data["image"]
         file_bin = data["file"].file.read()
+        force = False
         
         if "force" in data and data["force"]:
             force = data["force"].strip().title() in ["True", "1"]
