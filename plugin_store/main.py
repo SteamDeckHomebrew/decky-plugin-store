@@ -75,14 +75,14 @@ class PluginStore:
         return json_response([i.to_dict() for i in plugins])
     
     async def delete_plugin(self, request):
-        if request.headers.get("Auth-Key") != getenv("SUBMIT_AUTH_KEY"):
+        if request.headers.get("Authorization") != getenv("SUBMIT_AUTH_KEY"):
             return Response(status=403, text="INVALID AUTH KEY")
         data = await request.post()
         id = data["id"]
         return await self.database.delete_plugin(id)        
 
     async def submit_plugin(self, request):
-        if request.headers.get("Auth-Key") != getenv("SUBMIT_AUTH_KEY"):
+        if request.headers.get("Authorization") != getenv("SUBMIT_AUTH_KEY"):
             return Response(status=403, text="INVALID AUTH KEY")
         data = await request.post()
 
