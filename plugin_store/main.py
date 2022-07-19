@@ -86,7 +86,8 @@ class PluginStore:
             return Response(status=403, text="INVALID AUTH KEY")
         data = await request.json()
         id = data["id"]
-        return await self.database.delete_plugin(id)
+        await self.database.delete_plugin(id)
+        return Response(status=204, text="Deleted")
 
     async def update_plugin(self, request):
         if request.headers.get("Authorization") != getenv("SUBMIT_AUTH_KEY"):
