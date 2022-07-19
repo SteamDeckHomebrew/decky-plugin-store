@@ -50,8 +50,8 @@ class Database:
             self.session.add(plugin)
             try:
                 for tag in kwargs.get("tags", []):
-                    res = await self._get_or_insert(Tag, tag=tag)
-                    # await self.session.execute(insert(PluginTag).values(artifact_id=plugin.id, tag_id=res.id))
+                    await self._get_or_insert(Tag, tag=tag)
+                    # await self.session.execute(insert(PluginTag).values(artifact_id=plugin.id, tag_id=res.id)) for some reason this leads to duplicating tags, but it works fine without it
             except Exception as e:
                 await nested.rollback()
                 raise e
