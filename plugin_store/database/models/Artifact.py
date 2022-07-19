@@ -20,8 +20,8 @@ class Artifact(Base):
     name = Column(Text)
     author = Column(Text)
     description = Column(Text)
-    tags = relationship("Tag", secondary=PluginTag, cascade="all, delete, delete-orphan")
-    versions = relationship("Version", cascade="all, delete, delete-orphan")
+    tags = relationship("Tag", secondary=PluginTag, cascade="all, delete")
+    versions = relationship("Version", cascade="all, delete")
 
     UniqueConstraint("name")
 
