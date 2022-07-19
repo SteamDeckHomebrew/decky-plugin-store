@@ -5,8 +5,8 @@ from sqlalchemy.orm import relationship, selectinload
 class Tag(Base):
     __tablename__ = "tags"
 
-    id = Column(Integer, autoincrement=True, unique=True, primary_key=True)
-    tag = Column(Text, unique=True)
+    id = Column(Integer, primary_key=True)
+    tag = Column(Text)
 
 PluginTag = Table("plugin_tag", Base.metadata,
     Column("artifact_id", Integer, ForeignKey("artifacts.id")),
@@ -20,8 +20,8 @@ class Artifact(Base):
     name = Column(Text)
     author = Column(Text)
     description = Column(Text)
-    tags = relationship("Tag", secondary=PluginTag)
-    versions = relationship("Version")
+    tags = relationship("Tag", secondary=PluginTag, cascade="all, delete, delete-orphan")
+    versions = relationship("Version", cascade="all, delete, delete-orphan")
 
     UniqueConstraint("name")
 
