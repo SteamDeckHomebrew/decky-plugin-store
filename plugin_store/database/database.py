@@ -100,6 +100,7 @@ class Database:
     
     async def delete_plugin(self, id):
         query = PluginTag.query.filter_by(artifact_id = id)
+        print(query)
         await query.delete()
         await self.session.execute(delete(Version).where(Version.artifact_id == id))
         await self.session.execute(delete(Artifact).where(Artifact.id == id))
