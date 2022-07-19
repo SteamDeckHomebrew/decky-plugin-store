@@ -25,10 +25,10 @@ class Database:
         def __init__(self, id):
             self.id = id
 
-    async def _get_or_insert(self, t, **kwargs):
+    async def _get_or_insert(self, t, table=False, **kwargs):
         statement = select(t)
         for i,v in kwargs.items():
-            statement = statement.where(getattr(t, i) == v)
+            statement = statement.where(getattr(t if not table else t.c, i) == v)
         res = (await self.session.execute(statement)).scalars().first()
         if res:
             return res
@@ -50,8 +50,8 @@ class Database:
             self.session.add(plugin)
             try:
                 for tag in kwargs.get("tags", []):
-                    res = await self._get_or_insert(Tag, tag=tag)
-                    await self._get_or_insert(PluginTag, artifact_id=plugin.id, tag_id=res.id)
+                    res = await self._get_or_insert(Tag, False, tag=tag)
+                    await self._get_or_insert(PluginTag, True, artifact_id=plugin.id, tag_id=res.id)
             except Exception as e:
                 await nested.rollback()
                 raise e
