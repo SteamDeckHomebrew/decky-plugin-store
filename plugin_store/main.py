@@ -102,7 +102,7 @@ class PluginStore:
         )
         for version in reversed(versions):
             await self.database.insert_version(res.id,
-                name=version["id"],
+                name=version["name"],
                 hash=version["hash"]
             )
         new_plugin = await self.database.get_plugin_by_id(res.id)
