@@ -31,9 +31,11 @@ class Database:
             statement = statement.where(getattr(t, i) == v)
         res = (await self.session.execute(statement)).scalars().first()
         if res:
+            print("found")
             return res
         statement = insert(t).values(**kwargs)
         res = await self.session.execute(statement)
+        print("not found")
         return self._FakeObj(res.inserted_primary_key[0])
 
     async def _insert_if_not_already(self, t, **kwargs):
@@ -42,9 +44,11 @@ class Database:
             statement = statement.where(getattr(t.c, i) == v)
         res = (await self.session.execute(statement)).scalars().first()
         if res:
+            print("found insert")
             return res
         statement = insert(t).values(**kwargs)
         res = await self.session.execute(statement)
+        print("not found insert")
         # return self._FakeObj(res.inserted_primary_key[0])
 
     async def insert_artifact(self, **kwargs):
@@ -62,6 +66,7 @@ class Database:
             try:
                 for tag in kwargs.get("tags", []):
                     res = await self._get_or_insert(Tag, tag=tag)
+                    print("tag res for " + str(plugin.id) + " : " + str(res.id))
                     await self._insert_if_not_already(PluginTag, artifact_id=plugin.id, tag_id=res.id)
             except Exception as e:
                 await nested.rollback()
