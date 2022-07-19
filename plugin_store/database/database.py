@@ -57,7 +57,7 @@ class Database:
             name = kwargs["name"],
             author = kwargs["author"],
             description = kwargs["description"],
-            tags = [Tag(tag=i) for i in kwargs["tags"]]
+            # tags = [Tag(tag=i) for i in kwargs["tags"]]
         )
         if "id" in kwargs:
             plugin.id = kwargs["id"]
@@ -66,6 +66,7 @@ class Database:
             try:
                 for tag in kwargs.get("tags", []):
                     res = await self._get_or_insert(Tag, tag=tag)
+                    plugin.tags.append(res)
                     print("tag res for " + str(plugin.id) + " : " + str(res.id) + " on tag " + tag)
                     await self._insert_tag_if_not_found(PluginTag, plugin.id, res.id)
             except Exception as e:
@@ -117,7 +118,7 @@ class Database:
     async def delete_plugin(self, id):
         query = delete(PluginTag).where(PluginTag.c.artifact_id == id)
         print(query)
-        await self.session.execute(query, {"artifact_id_1": id})
+        await self.session.execute(query)
         query = delete(Version).where(Version.artifact_id == id)
         print(query)
         await self.session.execute(query)
