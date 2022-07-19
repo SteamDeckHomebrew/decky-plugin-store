@@ -31,25 +31,10 @@ class Database:
             statement = statement.where(getattr(t, i) == v)
         res = (await self.session.execute(statement)).scalars().first()
         if res:
-            print("found")
             return res
         statement = insert(t).values(**kwargs)
         res = await self.session.execute(statement)
-        print("not found")
         return self._FakeObj(res.inserted_primary_key[0])
-
-    async def _insert_tag_if_not_found(self, t, artifact_id, tag_id):
-        statement = select(t)
-        statement = statement.where(t.c.tag_id == tag_id)
-        print(statement)
-        res = (await self.session.execute(statement)).scalars().first()
-        if res:
-            print("found insert")
-            return res
-        statement = insert(t).values(artifact_id=artifact_id, tag_id=tag_id)
-        res = await self.session.execute(statement)
-        print("not found insert")
-        # return self._FakeObj(res.inserted_primary_key[0])
 
     async def insert_artifact(self, **kwargs):
         nested = await self.session.begin_nested()
@@ -57,7 +42,7 @@ class Database:
             name = kwargs["name"],
             author = kwargs["author"],
             description = kwargs["description"],
-            # tags = [Tag(tag=i) for i in kwargs["tags"]]
+            tags = [Tag(tag=i) for i in kwargs["tags"]]
         )
         if "id" in kwargs:
             plugin.id = kwargs["id"]
@@ -65,10 +50,8 @@ class Database:
             self.session.add(plugin)
             try:
                 for tag in kwargs.get("tags", []):
-                    res = await self._get_or_insert(Tag, tag=tag)
-                    plugin.tags.append(res)
-                    print("tag res for " + str(plugin.id) + " : " + str(res.id) + " on tag " + tag)
-                    await self._insert_tag_if_not_found(PluginTag, plugin.id, res.id)
+                    # res = await self._get_or_insert(Tag, tag=tag)
+                    await self.session.execute(insert(PluginTag).values(artifact_id=plugin.id, tag_id=res.id))
             except Exception as e:
                 await nested.rollback()
                 raise e
@@ -119,8 +102,6 @@ class Database:
         query = delete(PluginTag).where(PluginTag.c.artifact_id == id)
         print(query)
         await self.session.execute(query)
-        query = delete(Version).where(Version.artifact_id == id)
-        print(query)
-        await self.session.execute(query)
+        await self.session.execute(delete(Version).where(Version.artifact_id == id))
         await self.session.execute(delete(Artifact).where(Artifact.id == id))
         return await self.session.commit()
