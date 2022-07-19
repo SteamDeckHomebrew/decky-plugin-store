@@ -44,6 +44,8 @@ class Database:
             description = kwargs["description"],
             tags = [Tag(tag=i) for i in kwargs["tags"]]
         )
+        if "id" in kwargs:
+            plugin.id = kwargs["id"]
         async with self.lock:
             self.session.add(plugin)
             try:

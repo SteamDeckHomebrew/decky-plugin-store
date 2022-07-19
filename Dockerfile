@@ -1,4 +1,4 @@
-FROM python:alpine3.7
+FROM python:alpine3.9
 
 RUN apk add build-base
 RUN apk add openssl-dev

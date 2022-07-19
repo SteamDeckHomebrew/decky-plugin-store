@@ -26,7 +26,7 @@ async def b2_upload(filename, binary):
                 headers={"Authorization": res['authorizationToken']}
             ) as res:
                 if not res.status == 200:
-                    return print("B2 GET_UPLOAD_URL ERROR ", await res.read()) 
+                    return print("B2 GET_UPLOAD_URL ERROR ", await res.read())
                 res = await res.json()
 
                 res = await web.post(res["uploadUrl"], data=binary,
@@ -66,7 +66,7 @@ class PluginStore:
 
     async def index(self, _):
         return Response(text=self.index_page, content_type="text/html")
-    
+
     async def plugins(self, request):
         query = request.query.get("query")
         tags = request.query.get("tags")
@@ -74,7 +74,7 @@ class PluginStore:
             tags = [i.strip() for i in tags.split(",")]
         plugins = await self.database.search(query, tags)
         return json_response([i.to_dict() for i in plugins])
-    
+
     async def delete_plugin(self, request):
         if request.headers.get("Authorization") != getenv("SUBMIT_AUTH_KEY"):
             return Response(status=403, text="INVALID AUTH KEY")
@@ -86,14 +86,27 @@ class PluginStore:
         if request.headers.get("Authorization") != getenv("SUBMIT_AUTH_KEY"):
             return Response(status=403, text="INVALID AUTH KEY")
         data = await request.json()
-        id = data["id"]
+        plugin_id = data["id"]
         author = data["author"]
         description = data["description"]
-        id = data["id"]
         name = data["name"]
         tags = data["tags"]
         versions = data["versions"]
-        await self.database.delete_plugin(data["id"])
+        await self.database.delete_plugin(plugin_id)
+        res = await self.database.insert_artifact(
+            id=plugin_id,
+            name=name,
+            author=author,
+            description=description,
+            tags=tags
+        )
+        for version in reversed(versions):
+            await self.database.insert_version(res.id,
+                name=version["id"],
+                hash=version["hash"]
+            )
+        new_plugin = await self.database.get_plugin_by_id(res.id)
+        return json_response(new_plugin.to_dict(), status=200)
 
     async def submit_plugin(self, request):
         if request.headers.get("Authorization") != getenv("SUBMIT_AUTH_KEY"):
@@ -109,7 +122,7 @@ class PluginStore:
         image_url = data["image"]
         file_bin = data["file"].file.read()
         force = False
-        
+
         if "force" in data and data["force"]:
             force = data["force"].strip().title() in ["True", "1"]
 
