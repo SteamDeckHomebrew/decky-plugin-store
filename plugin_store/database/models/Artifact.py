@@ -5,8 +5,8 @@ from sqlalchemy.orm import relationship, selectinload
 class Tag(Base):
     __tablename__ = "tags"
 
-    id = Column(Integer, primary_key=True)
-    tag = Column(Text)
+    id = Column(Integer, autoincrement=True, unique=True, primary_key=True)
+    tag = Column(Text, unique=True)
 
 PluginTag = Table("plugin_tag", Base.metadata,
     Column("artifact_id", Integer, ForeignKey("artifacts.id")),
