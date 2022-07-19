@@ -66,7 +66,7 @@ class Database:
             try:
                 for tag in kwargs.get("tags", []):
                     res = await self._get_or_insert(Tag, tag=tag)
-                    print("tag res for " + str(plugin.id) + " : " + str(res.id))
+                    print("tag res for " + str(plugin.id) + " : " + str(res.id) + " on tag" + tag)
                     await self._insert_if_not_already(PluginTag, artifact_id=plugin.id, tag_id=res.id)
             except Exception as e:
                 await nested.rollback()
