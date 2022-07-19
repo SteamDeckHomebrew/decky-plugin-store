@@ -38,16 +38,16 @@ class Database:
         print("not found")
         return self._FakeObj(res.inserted_primary_key[0])
 
-    async def _insert_if_not_already(self, t, **kwargs):
+    async def _insert_tag_if_not_found(self, t, artifact_id, tag_id):
         statement = select(t)
-        for i,v in kwargs.items():
-            statement = statement.where(getattr(t.c, i) == v)
+        statement = statement.where(t.c.tag_id == tag_id)
+        print(statement)
         res = (await self.session.execute(statement)).scalars().first()
         if res:
             print("found insert")
             return res
-        statement = insert(t).values(**kwargs)
-        res = await self.session.execute(statement)
+        statement = insert(t).values(artifact_id=artifact_id, tag_id=tag_id)
+        res = await self.session.execute(statement, kwargs)
         print("not found insert")
         # return self._FakeObj(res.inserted_primary_key[0])
 
@@ -66,8 +66,8 @@ class Database:
             try:
                 for tag in kwargs.get("tags", []):
                     res = await self._get_or_insert(Tag, tag=tag)
-                    print("tag res for " + str(plugin.id) + " : " + str(res.id) + " on tag" + tag)
-                    await self._insert_if_not_already(PluginTag, artifact_id=plugin.id, tag_id=res.id)
+                    print("tag res for " + str(plugin.id) + " : " + str(res.id) + " on tag " + tag)
+                    await self._insert_tag_if_not_found(PluginTag, plugin.id, res.id)
             except Exception as e:
                 await nested.rollback()
                 raise e
@@ -118,6 +118,8 @@ class Database:
         query = delete(PluginTag).where(PluginTag.c.artifact_id == id)
         print(query)
         await self.session.execute(query, {"artifact_id_1": id})
-        await self.session.execute(delete(Version).where(Version.artifact_id == id))
+        query = delete(Version).where(Version.artifact_id == id)
+        print(query)
+        await self.session.execute(query)
         await self.session.execute(delete(Artifact).where(Artifact.id == id))
         return await self.session.commit()
