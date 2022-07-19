@@ -47,7 +47,7 @@ class Database:
             print("found insert")
             return res
         statement = insert(t).values(artifact_id=artifact_id, tag_id=tag_id)
-        res = await self.session.execute(statement, kwargs)
+        res = await self.session.execute(statement)
         print("not found insert")
         # return self._FakeObj(res.inserted_primary_key[0])
 
