@@ -50,8 +50,8 @@ class Database:
             self.session.add(plugin)
             try:
                 for tag in kwargs.get("tags", []):
-                    # res = await self._get_or_insert(Tag, tag=tag)
-                    await self.session.execute(insert(PluginTag).values(artifact_id=plugin.id, tag_id=res.id))
+                    res = await self._get_or_insert(Tag, tag=tag)
+                    # await self.session.execute(insert(PluginTag).values(artifact_id=plugin.id, tag_id=res.id))
             except Exception as e:
                 await nested.rollback()
                 raise e
