@@ -136,12 +136,17 @@ class PluginStore:
 
         res = await self.database.get_plugin_by_name(name)
 
-        if res and force:
-            await self.database.delete_plugin(res.id)
-            res = None
-
         if not res:
             res = await self.database.insert_artifact(
+                name=name,
+                author=author,
+                description=description,
+                tags=tags
+            )
+        elif res and force:
+            await self.database.delete_plugin(res.id)
+            res = await self.database.insert_artifact(
+                id=res.id,
                 name=name,
                 author=author,
                 description=description,
