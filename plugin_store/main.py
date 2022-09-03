@@ -175,7 +175,7 @@ class PluginStore:
             icon_url="https://cdn.tzatzikiweeb.moe/file/steam-deck-homebrew/SDHomeBrewwwww.png",
             url=f"https://github.com/{plugin.author}/{plugin.name}"
         )
-        embed.set_image(url=f"https://cdn.tzatzikiweeb.moe/file/steam-deck-homebrew/artifact_images/{plugin.name.replace('/', '_')}.png")
+        embed.set_thumbnail(url=f"https://cdn.tzatzikiweeb.moe/file/steam-deck-homebrew/artifact_images/{plugin.name.replace('/', '_')}.png")
         embed.set_footer(text=f"Version {plugin.versions[0]}")
 
         webhook.add_embed(embed)
