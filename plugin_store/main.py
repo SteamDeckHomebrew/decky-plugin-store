@@ -55,8 +55,10 @@ class PluginStore:
             post("/__auth", self.check_auth)
         ])
         self.cors = aiohttp_cors.setup(self.server, defaults={
-          "https://steamloopback.host": aiohttp_cors.ResourceOptions(expose_headers="*",
-                allow_headers="*")
+          "https://steamloopback.host": aiohttp_cors.ResourceOptions(
+              expose_headers="*",
+              allow_headers="*"
+          )
         })
         for route in list(self.server.router.routes()):
             self.cors.add(route)
@@ -167,9 +169,15 @@ class PluginStore:
     async def post_announcement(self, plugin):
         webhook = AsyncDiscordWebhook(url=getenv("ANNOUNCEMENT_WEBHOOK"))
         embed = DiscordEmbed(title=plugin.name, description=plugin.description, color='213997')
-        embed.set_author(name=plugin.author, 
-        icon_url="https://cdn.tzatzikiweeb.moe/file/steam-deck-homebrew/SDHomeBrewwwww.png", url=f"https://github.com/{plugin.author}/{plugin.name}")
+
+        embed.set_author(
+            name=plugin.author, 
+            icon_url="https://cdn.tzatzikiweeb.moe/file/steam-deck-homebrew/SDHomeBrewwwww.png",
+            url=f"https://github.com/{plugin.author}/{plugin.name}"
+        )
         embed.set_image(url=f"https://cdn.tzatzikiweeb.moe/file/steam-deck-homebrew/artifact_images/{plugin.name.replace('/', '_')}.png")
+        embed.set_footer(text=f"Version {plugin.versions[0]}")
+
         webhook.add_embed(embed)
         await webhook.execute()
 
