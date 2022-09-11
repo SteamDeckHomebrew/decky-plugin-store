@@ -4,7 +4,7 @@ services:
     build: .
     container_name: plugin_store
     environment:
-        - DB_PATH=/db/plugin_store.db
+        - DB_PATH=/db/plugin_store_new.db
         - ANNOUNCEMENT_WEBHOOK
         - SUBMIT_AUTH_KEY
         - B2_APP_KEY_ID
@@ -15,7 +15,10 @@ services:
     networks:
         - plugins-network
     restart: unless-stopped
+    
 
 networks:
   plugins-network:
+    external: true
     driver: bridge
+    name: caddy__bridge
