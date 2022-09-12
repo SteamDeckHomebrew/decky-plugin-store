@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "decky-plugin-store"
+version = "0.1.0"
+description = "Plugin Store backend for Decky"
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+packages = [{include = "decky_plugin_store"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+aiohttp = "*"
+aiohttp-cors = "*"
+aiosqlite = "*"
+discord-py = "*"
+discord-webhook = {version = "*", extras = ["async"]}
+sqlalchemy = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

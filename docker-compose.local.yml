@@ -1,0 +1,18 @@
+version: '3'
+services:
+  plugin_store:
+    build: .
+    container_name: plugin_store
+    environment:
+        - DB_PATH=/db/plugin_store_new.db
+        - ANNOUNCEMENT_WEBHOOK
+        - SUBMIT_AUTH_KEY
+        - B2_APP_KEY_ID
+        - B2_APP_KEY
+        - B2_BUCKET_ID
+    volumes:
+        - ./.database:/db
+        - ./plugin_store:/app
+    restart: unless-stopped
+    ports:
+        - "5566:5566"
