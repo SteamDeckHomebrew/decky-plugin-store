@@ -229,7 +229,7 @@ class PluginStore:
             url=f"https://github.com/{plugin.author}/{plugin.name}"
         )
         embed.set_thumbnail(url=f"https://cdn.tzatzikiweeb.moe/file/steam-deck-homebrew/artifact_images/{plugin.name.replace('/', '_')}.png")
-        embed.set_footer(text=f"Version {plugin.versions[0].name}")
+        embed.set_footer(text=f"Version {plugin.versions[len(plugin.versions) - 1].name}")
 
         webhook.add_embed(embed)
         await webhook.execute()
