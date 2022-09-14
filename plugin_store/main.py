@@ -1,7 +1,7 @@
+from asyncio import create_task
 from os import getenv, path
 from aiohttp.web import Application, get, post, json_response, Response, run_app
 from aiohttp import ClientSession
-from asyncio import get_event_loop
 from base64 import b64encode
 from hashlib import sha1, sha256
 from discord_webhook import AsyncDiscordWebhook, DiscordEmbed
@@ -41,8 +41,7 @@ async def b2_upload(filename, binary):
 
 class PluginStore:
     def __init__(self) -> None:
-        self.loop = get_event_loop()
-        self.server = Application(loop=self.loop)
+        self.server = Application()
         self.database = Database(getenv("DB_PATH"))
         self.index_page = open(path.join(path.dirname(__file__), 'templates/plugin_browser.html')).read()
 
@@ -63,9 +62,12 @@ class PluginStore:
         for route in list(self.server.router.routes()):
             self.cors.add(route)
 
+    async def make_app(self):
+        create_task(self.database.init())
+        return self.server
+
     def run(self):
-        self.loop.create_task(self.database.init())
-        run_app(self.server, host="0.0.0.0", port="5566", access_log=None, loop=self.loop)
+        run_app(self.make_app(), host="0.0.0.0", port=5566, access_log=None)
 
     async def index(self, _):
         return Response(text=self.index_page, content_type="text/html")
