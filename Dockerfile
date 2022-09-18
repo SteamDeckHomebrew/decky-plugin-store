@@ -16,4 +16,6 @@ COPY ./plugin_store /app
 WORKDIR /app
 ENV PYTHONUNBUFFERED=0
 
-CMD poetry run -- python3 -u main.py
+ENTRYPOINT ["poetry", "run", "--"]
+
+CMD python3 -u main.py

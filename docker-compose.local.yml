@@ -6,13 +6,14 @@ services:
     environment:
         - DB_PATH=/db/plugin_store_new.db
         - ANNOUNCEMENT_WEBHOOK
-        - SUBMIT_AUTH_KEY
+        - SUBMIT_AUTH_KEY=deadbeef
         - B2_APP_KEY_ID
         - B2_APP_KEY
         - B2_BUCKET_ID
     volumes:
         - ./.database:/db
         - ./plugin_store:/app
+        - ./tests:/tests
     restart: unless-stopped
     ports:
         - "5566:5566"

@@ -1,3 +1,7 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.poetry]
 name = "decky-plugin-store"
 version = "0.1.0"
@@ -8,13 +12,42 @@ packages = [{include = "decky_plugin_store"}]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-aiohttp = "*"
-aiohttp-cors = "*"
-aiosqlite = "*"
-discord-py = "*"
-discord-webhook = {version = "*", extras = ["async"]}
-sqlalchemy = "*"
+aiohttp = "^3.7.4.post0"
+aiohttp-cors = "^0.7.0"
+aiosqlite = "^0.17.0"
+# discord-py = "^1.7.3"
+discord-webhook = {version = "^0.17.0", extras = ["async"]}
+sqlalchemy = "^1.4.41"
 
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[tool.poetry.dev-dependencies]
+pytest = "*"
+pytest-aiohttp = "^1.0.4"
+pytest-env = "^0.6.2"
+pytest-lazy-fixture = "0.6.3"
+
+[tool.black]
+line-length = 120
+target-version = ['py39', 'py310', 'py311']
+include = '\.pyi?$'
+exclude = '''
+(
+    /(
+        \.eggs
+      | \.git
+      | \.hg
+      | \.mypy_cache
+      | \.tox
+      | \.venv
+      | _build
+      | buck-out
+      | build
+      | dist
+    )/
+)
+'''
+
+[tool.isort]
+line_length = 120
+order_by_type = false
+profile = "black"
+src_paths = ["plugin_store"]

@@ -1,0 +1,76 @@
+import pytest
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("client", [pytest.lazy_fixture("client_unauth"), pytest.lazy_fixture("client_auth")])
+async def test_index_endpoint(client, index_template: str):
+    response = await client.get("/")
+    assert response.status == 200
+    assert await response.text() == index_template
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("client", [pytest.lazy_fixture("client_unauth"), pytest.lazy_fixture("client_auth")])
+async def test_plugins_list_endpoint(seed_db, client):
+    response = await client.get("/plugins")
+    assert response.status == 200
+    assert await response.json() == [
+        {
+            "id": 1,
+            "name": "plugin-1",
+            "author": "author-of-plugin-1",
+            "description": "Description of plugin-1",
+            "tags": ["tag-1", "tag-2"],
+            "versions": [
+                {"name": "1.0.0", "hash": "f06b77407d0ef08f5667591ab386eeff2090c340f3eadf76006db6d1ac721029"},
+                {"name": "0.2.0", "hash": "750e557099102527b927be4b9e79392c8f4e011d8a5848480afb61fc0de4f5af"},
+                {"name": "0.1.0", "hash": "44733735485ece810402fff9e7a608a49039c0b363e52ff62d07b84ab2b40b06"},
+            ],
+        },
+        {
+            "id": 2,
+            "name": "plugin-2",
+            "author": "author-of-plugin-2",
+            "description": "Description of plugin-2",
+            "tags": ["tag-1", "tag-3"],
+            "versions": [
+                {"name": "2.0.0", "hash": "56635138a27a6b0c57f0f06cdd58eadf58fff966516c38fca530e2d0f12a3190"},
+                {"name": "1.1.0", "hash": "aeee42b51db3d73c6b75c08ccd46feff21b6de5f41bf1494d147471df850d947"},
+            ],
+        },
+        {
+            "id": 3,
+            "name": "plugin-3",
+            "author": "author-of-plugin-3",
+            "description": "Description of plugin-3",
+            "tags": ["tag-2", "tag-3"],
+            "versions": [
+                {"name": "3.2.0", "hash": "ec2516b144cb429b1473104efcbe345da2b82347fbbb587193a22429a0dc6ab6"},
+                {"name": "3.1.0", "hash": "8d9a561a9fc5c7509b5fe0e54213641e502e3b1e456af34cc44aa0a526f85f9b"},
+                {"name": "3.0.0", "hash": "9463611d748129d063f697ec7bdd770b7d5b82c50b93582e31e6440236ba8f66"},
+            ],
+        },
+        {
+            "id": 4,
+            "name": "plugin-4",
+            "author": "author-of-plugin-4",
+            "description": "Description of plugin-4",
+            "tags": ["tag-1"],
+            "versions": [
+                {"name": "4.0.0", "hash": "8eee479a02359eeb0f30f86f0bec493ba7b31ff738509a3df0f5261dcad8f45f"},
+                {"name": "3.0.0", "hash": "bb70c8d12deee43fb3f2529807b132432c63253c9d27cb9f15f3c4ceae5cfc62"},
+                {"name": "2.0.0", "hash": "02dd930214f64c3694122435b8a58641da279c83cd9beb9b47adf5173e07e6e5"},
+                {"name": "1.0.0", "hash": "51ab66013d901f12a45142248132c0c98539c749b6a3b341ab4da2b9df4cdc09"},
+            ],
+        },
+    ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("client", "return_code"),
+    [(pytest.lazy_fixture("client_unauth"), 403), (pytest.lazy_fixture("client_auth"), 200)],
+)
+async def test_auth_endpoint(client, return_code):
+    response = await client.post("/__auth")
+    assert response.status == return_code

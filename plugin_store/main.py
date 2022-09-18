@@ -196,7 +196,7 @@ class PluginStore:
             raise
         finally:
             await session3.close()
-        
+
         session4 = self.database.maker()
         try:
             ver = await self.database.insert_version(
@@ -231,7 +231,7 @@ class PluginStore:
             url=f"https://github.com/{plugin.author}/{plugin.name}"
         )
         embed.set_thumbnail(url=f"https://cdn.tzatzikiweeb.moe/file/steam-deck-homebrew/artifact_images/{plugin.name.replace('/', '_')}.png")
-        embed.set_footer(text=f"Version {plugin.versions[len(plugin.versions) - 1].name}")
+        embed.set_footer(text=f"Version {plugin.versions[-1].name}")
 
         webhook.add_embed(embed)
         await webhook.execute()
