@@ -14,7 +14,7 @@ from .models.Version import Version
 
 if TYPE_CHECKING:
     from pathlib import Path
-    from typing import Optional, Union
+    from typing import Optional, Type, Union
 
 class Database:
     def __init__(self, db_path: "Union[str, Path]"):
@@ -26,44 +26,55 @@ class Database:
     async def init(self):
         async with self.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+    async def prepare_tags(self, session: "AsyncSession", tag_names: list[str]) -> "list[Tag]":
+        nested = await session.begin_nested()
+        async with self.lock:
+            try:
+                statement = select(Tag).where(Tag.tag.in_(tag_names))
+                tags = list((await session.execute(statement)).scalars())
+                existing = [tag.tag for tag in tags]
+                for tag_name in tag_names:
+                    if tag_name not in existing:
+                        tag = Tag(tag=tag_name)
+                        session.add(tag)
+                        tags.append(tag)
+            except:
+                await nested.rollback()
+                raise
+            await nested.commit()
+        return tags
 
-    class _FakeObj:
-        def __init__(self, id: int):
-            self.id = id
-
-    async def _get_or_insert(self, session: "AsyncSession", t: "Base", **kwargs):
-        statement = select(t)
-        for i,v in kwargs.items():
-            statement = statement.where(getattr(t, i) == v)
-        res = (await session.execute(statement)).scalars().first()
-        if res:
-            return res
-        statement = insert(t).values(**kwargs)
-        res = await session.execute(statement)
-        return self._FakeObj(res.inserted_primary_key[0])
 
     async def insert_artifact(self, session: "AsyncSession", **kwargs) -> "Artifact":
+        tags = await self.prepare_tags(session, kwargs['tags'])
         nested = await session.begin_nested()
-        plugin = Artifact(
-            name = kwargs["name"],
-            author = kwargs["author"],
-            description = kwargs["description"],
-            tags = [Tag(tag=i) for i in kwargs["tags"]]
-        )
-        if "id" in kwargs:
-            plugin.id = kwargs["id"]
         async with self.lock:
-            session.add(plugin)
+            plugin = Artifact(
+                name=kwargs["name"],
+                author=kwargs["author"],
+                description=kwargs["description"],
+                tags=tags,
+            )
+            if "id" in kwargs:
+                plugin.id = kwargs["id"]
             try:
-                for tag in kwargs.get("tags", []):
-                    await self._get_or_insert(session, Tag, tag=tag)
-                    # await self.session.execute(insert(PluginTag).values(artifact_id=plugin.id, tag_id=res.id)) for some reason this leads to duplicating tags, but it works fine without it
-            except Exception as e:
+                session.add(plugin)
+            except:
                 await nested.rollback()
-                raise e
             await session.commit()
             return await self.get_plugin_by_id(session, plugin.id)
-    
+
+    async def update_artifact(self, session: "AsyncSession", plugin: "Artifact") -> "Artifact":
+        nested = await session.begin_nested()
+        async with self.lock:
+            try:
+                session.add(plugin)
+            except:
+                await nested.rollback()
+            await session.commit()
+        return await self.get_plugin_by_id(session, plugin.id)
+
+
     async def insert_version(self, session: "AsyncSession", artifact_id: int, **kwargs) -> "Version":
         version = Version(
             artifact_id=artifact_id,

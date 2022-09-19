@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 import pytest_asyncio
+from aiohttp import FormData
+from pytest_mock import MockFixture
 
 import main
 
@@ -21,6 +23,12 @@ if TYPE_CHECKING:
     from database.database import Database
 
 APP_PATH = Path("../app").absolute()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def mock_external_services(session_mocker: "MockFixture"):
+    session_mocker.patch("main.b2_upload")
+    session_mocker.patch("main.AsyncDiscordWebhook", new=session_mocker.AsyncMock)
 
 
 @pytest.fixture()
@@ -112,6 +120,27 @@ async def seed_db(db):
     session.commit()
 
     return db
+
+
+@pytest.fixture()
+def plugin_submit_data(request: "pytest.FixtureRequest") -> "FormData":
+    data = FormData(
+        {
+            "name": request.param,
+            "author": "plugin-author-of-new-plugin",
+            "description": "Description of our brand new plugin!",
+            "tags": "new-tag-1,new-tag-2",
+            "version_name": "2.0.0",
+            "image": "https://example.com/image.png",
+        },
+    )
+    data.add_field(
+        "file",
+        "this-is-a-test-file-content",
+        filename="new-release.bin",
+        content_type="application/x-binary",
+    )
+    return data
 
 
 @pytest.fixture()
