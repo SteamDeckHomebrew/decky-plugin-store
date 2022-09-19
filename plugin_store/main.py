@@ -180,22 +180,39 @@ class PluginStore:
             await session2.close()
 
         session3 = self.database.maker()
-        try:
-            if not res:
+        if res is not None:
+            if version_name in [i.name for i in res.versions]:
+                return json_response({"message": "Version already exists"}, status=400)
+            res.author = author
+            res.description = description
+            try:
+                res.tags = await self.database.prepare_tags(session3, tags)
+            except:
+                await session3.rollback()
+                raise
+
+            try:
+                res = await self.database.update_artifact(session3, res)
+            except:
+                await session3.rollback()
+                raise
+            finally:
+                await session3.close()
+
+        else:
+            try:
                 res = await self.database.insert_artifact(
                     session=session3,
                     name=name,
                     author=author,
                     description=description,
-                    tags=tags
+                    tags=tags,
                 )
-            elif version_name in [i.name for i in res.versions]:
-                return json_response({"message": "Version already exists"}, status=400)
-        except:
-            await session3.rollback()
-            raise
-        finally:
-            await session3.close()
+            except:
+                await session3.rollback()
+                raise
+            finally:
+                await session3.close()
 
         session4 = self.database.maker()
         try:
@@ -210,6 +227,15 @@ class PluginStore:
             raise
         finally:
             await session4.close()
+        session5 = self.database.maker()
+        try:
+            res = await self.database.get_plugin_by_id(session5, res.id)
+        except:
+            await session5.rollback()
+            raise
+        finally:
+            await session5.close()
+
         await b2_upload(f"versions/{ver.hash}.zip", file_bin)
         await self.upload_image(res, image_url)
         await self.post_announcement(res)

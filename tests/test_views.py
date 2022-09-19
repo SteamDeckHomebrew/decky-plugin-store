@@ -1,9 +1,19 @@
+from typing import TYPE_CHECKING
+
 import pytest
+
+if TYPE_CHECKING:
+    from typing import Optional
+
+    from aiohttp import FormData
+    from aiohttp.test_utils import TestClient
+
+    from database.database import Database
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("client", [pytest.lazy_fixture("client_unauth"), pytest.lazy_fixture("client_auth")])
-async def test_index_endpoint(client, index_template: str):
+async def test_index_endpoint(client: "TestClient", index_template: str):
     response = await client.get("/")
     assert response.status == 200
     assert await response.text() == index_template
@@ -11,7 +21,7 @@ async def test_index_endpoint(client, index_template: str):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("client", [pytest.lazy_fixture("client_unauth"), pytest.lazy_fixture("client_auth")])
-async def test_plugins_list_endpoint(seed_db, client):
+async def test_plugins_list_endpoint(seed_db: "Database", client: "TestClient"):
     response = await client.get("/plugins")
     assert response.status == 200
     assert await response.json() == [
@@ -71,6 +81,80 @@ async def test_plugins_list_endpoint(seed_db, client):
     ("client", "return_code"),
     [(pytest.lazy_fixture("client_unauth"), 403), (pytest.lazy_fixture("client_auth"), 200)],
 )
-async def test_auth_endpoint(client, return_code):
+async def test_auth_endpoint(client: "TestClient", return_code: int):
     response = await client.post("/__auth")
     assert response.status == return_code
+
+
+@pytest.mark.asyncio
+async def test_submit_endpoint_requires_auth(client_unauth: "TestClient"):
+    response = await client_unauth.post("/__submit")
+    assert response.status == 403
+
+
+@pytest.mark.parametrize(
+    ("db_fixture", "plugin_submit_data", "name", "return_code", "resulting_versions", "error_msg"),
+    [
+        (
+            pytest.lazy_fixture("db"),
+            "new-plugin",
+            "new-plugin",
+            201,
+            [{"name": "2.0.0", "hash": "378d3213bf3c5d1924891c05659425e7d62bb786665cb2eb5c88564a327b03c7"}],
+            None,
+        ),
+        (
+            pytest.lazy_fixture("seed_db"),
+            "plugin-1",
+            "plugin-1",
+            201,
+            [
+                {"name": "2.0.0", "hash": "378d3213bf3c5d1924891c05659425e7d62bb786665cb2eb5c88564a327b03c7"},
+                {"name": "1.0.0", "hash": "f06b77407d0ef08f5667591ab386eeff2090c340f3eadf76006db6d1ac721029"},
+                {"name": "0.2.0", "hash": "750e557099102527b927be4b9e79392c8f4e011d8a5848480afb61fc0de4f5af"},
+                {"name": "0.1.0", "hash": "44733735485ece810402fff9e7a608a49039c0b363e52ff62d07b84ab2b40b06"},
+            ],
+            None,
+        ),
+        (pytest.lazy_fixture("seed_db"), "plugin-2", "plugin-2", 400, [], "Version already exists"),
+    ],
+    ids=["creates_new_plugin", "uploads_new_version", "blocks_overriding_existing_version"],
+    indirect=["plugin_submit_data"],
+)
+@pytest.mark.asyncio
+async def test_submit_endpoint(
+    client_auth: "TestClient",
+    db_fixture: "Database",
+    plugin_submit_data: "FormData",
+    name: str,
+    return_code: int,
+    resulting_versions: list[dict],
+    error_msg: "Optional[str]",
+):
+    response = await client_auth.post("/__submit", data=plugin_submit_data)
+    assert response.status == return_code
+    if return_code >= 400:
+        assert (await response.json())["message"] == error_msg
+    else:
+        assert await response.json() == {
+            "id": 1,
+            "name": name,
+            "author": "plugin-author-of-new-plugin",
+            "description": "Description of our brand new plugin!",
+            "tags": ["new-tag-1", "new-tag-2"],
+            "versions": resulting_versions,
+        }
+
+        session = db_fixture.maker()
+        plugin = await db_fixture.get_plugin_by_id(session, 1)
+
+        assert plugin.name == name
+        assert plugin.author == "plugin-author-of-new-plugin"
+        assert plugin.description == "Description of our brand new plugin!"
+        assert len(plugin.tags) == 2
+        assert plugin.tags[0].tag == "new-tag-1"
+        assert plugin.tags[1].tag == "new-tag-2"
+        assert len(plugin.versions) == len(resulting_versions)
+        for actual, expected in zip(plugin.versions, reversed(resulting_versions)):
+            assert actual.name == expected["name"]
+            assert actual.hash == expected["hash"]
