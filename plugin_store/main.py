@@ -1,21 +1,31 @@
 from asyncio import create_task
-from os import getenv, path
-from aiohttp.web import Application, get, post, json_response, Response, run_app
-from aiohttp import ClientSession
 from base64 import b64encode
 from hashlib import sha1, sha256
-from discord_webhook import AsyncDiscordWebhook, DiscordEmbed
+from os import getenv, path
+from typing import TYPE_CHECKING
 from urllib.parse import quote
+
 import aiohttp_cors
+from aiohttp import ClientSession
+from aiohttp.web import Application, get, json_response, post, Response, run_app
+from discord_webhook import AsyncDiscordWebhook, DiscordEmbed
 
 from database.database import Database
+
+if TYPE_CHECKING:
+    from database.models import Artifact
+
+
+CDN_URL = "https://cdn.tzatzikiweeb.moe/file/steam-deck-homebrew/"
+
 
 async def b2_upload(filename, binary):
     async with ClientSession() as web:
         auth_str = f"{getenv('B2_APP_KEY_ID')}:{getenv('B2_APP_KEY')}".encode("utf-8")
-        async with web.get("https://api.backblazeb2.com/b2api/v2/b2_authorize_account", headers={
-            "Authorization": f"Basic: {b64encode(auth_str).decode('utf-8')}"
-        }) as res:
+        async with web.get(
+            "https://api.backblazeb2.com/b2api/v2/b2_authorize_account",
+            headers={"Authorization": f"Basic: {b64encode(auth_str).decode('utf-8')}"},
+        ) as res:
             if not res.status == 200:
                 return print("B2 LOGIN ERROR ", await res.read())
             res = await res.json()
@@ -23,42 +33,48 @@ async def b2_upload(filename, binary):
             async with web.post(
                 f"{res['apiUrl']}/b2api/v2/b2_get_upload_url",
                 json={"bucketId": getenv("B2_BUCKET_ID")},
-                headers={"Authorization": res['authorizationToken']}
+                headers={"Authorization": res["authorizationToken"]},
             ) as res:
                 if not res.status == 200:
                     return print("B2 GET_UPLOAD_URL ERROR ", await res.read())
                 res = await res.json()
 
-                res = await web.post(res["uploadUrl"], data=binary,
-                headers={
-                    "Authorization": res["authorizationToken"],
-                    "Content-Type": "b2/x-auto",
-                    "Content-Length": str(len(binary)),
-                    "X-Bz-Content-Sha1": sha1(binary).hexdigest(),
-                    "X-Bz-File-Name": filename
-                })
+                res = await web.post(
+                    res["uploadUrl"],
+                    data=binary,
+                    headers={
+                        "Authorization": res["authorizationToken"],
+                        "Content-Type": "b2/x-auto",
+                        "Content-Length": str(len(binary)),
+                        "X-Bz-Content-Sha1": sha1(binary).hexdigest(),
+                        "X-Bz-File-Name": filename,
+                    },
+                )
                 return await res.text()
+
 
 class PluginStore:
     def __init__(self) -> None:
         self.server = Application()
         self.database = Database(getenv("DB_PATH"))
-        self.index_page = open(path.join(path.dirname(__file__), 'templates/plugin_browser.html')).read()
+        self.index_page = open(path.join(path.dirname(__file__), "templates/plugin_browser.html")).read()
 
-        self.server.add_routes([
-            get("/", self.index),
-            get("/plugins", self.plugins),
-            post("/__submit", self.submit_plugin),
-            post("/__delete", self.delete_plugin),
-            post("/__update", self.update_plugin),
-            post("/__auth", self.check_auth)
-        ])
-        self.cors = aiohttp_cors.setup(self.server, defaults={
-          "https://steamloopback.host": aiohttp_cors.ResourceOptions(
-              expose_headers="*",
-              allow_headers="*"
-          )
-        })
+        self.server.add_routes(
+            [
+                get("/", self.index),
+                get("/plugins", self.plugins),
+                post("/__submit", self.submit_plugin),
+                post("/__delete", self.delete_plugin),
+                post("/__update", self.update_plugin),
+                post("/__auth", self.check_auth),
+            ],
+        )
+        self.cors = aiohttp_cors.setup(
+            self.server,
+            defaults={
+                "https://steamloopback.host": aiohttp_cors.ResourceOptions(expose_headers="*", allow_headers="*"),
+            },
+        )
         for route in list(self.server.router.routes()):
             self.cors.add(route)
 
@@ -125,13 +141,10 @@ class PluginStore:
                 name=name,
                 author=author,
                 description=description,
-                tags=tags
+                tags=tags,
             )
             for version in reversed(versions):
-                await self.database.insert_version(session, res.id,
-                    name=version["name"],
-                    hash=version["hash"]
-                )
+                await self.database.insert_version(session, res.id, name=version["name"], hash=version["hash"])
             new_plugin = await self.database.get_plugin_by_id(session, res.id)
             return json_response(new_plugin.to_dict(), status=200)
         except:
@@ -139,7 +152,6 @@ class PluginStore:
             raise
         finally:
             await session.close()
-
 
     async def submit_plugin(self, request):
         if request.headers.get("Authorization") != getenv("SUBMIT_AUTH_KEY"):
@@ -159,82 +171,83 @@ class PluginStore:
         if "force" in data and data["force"]:
             force = data["force"].strip().title() in ["True", "1"]
 
-        session1 = self.database.maker()
+        session__fetch = self.database.maker()
         try:
-            res = await self.database.get_plugin_by_name(session1, name)
+            res = await self.database.get_plugin_by_name(session__fetch, name)
         except:
-            await session1.rollback()
+            await session__fetch.rollback()
             raise
         finally:
-            await session1.close()
+            await session__fetch.close()
 
-        session2 = self.database.maker()
-        try:
-            if res and force:
-                await self.database.delete_plugin(session2, res.id)
+        if res and force:
+            session__delete_existing = self.database.maker()
+            try:
+                await self.database.delete_plugin(session__delete_existing, res.id)
                 res = None
-        except:
-            await session2.rollback()
-            raise
-        finally:
-            await session2.close()
-
-        session3 = self.database.maker()
-        if res is not None:
-            if version_name in [i.name for i in res.versions]:
-                return json_response({"message": "Version already exists"}, status=400)
-            res.author = author
-            res.description = description
-            try:
-                res.tags = await self.database.prepare_tags(session3, tags)
             except:
-                await session3.rollback()
-                raise
-
-            try:
-                res = await self.database.update_artifact(session3, res)
-            except:
-                await session3.rollback()
+                await session__delete_existing.rollback()
                 raise
             finally:
-                await session3.close()
+                await session__delete_existing.close()
+
+        if res is not None:
+            res: "Artifact"
+            if version_name in [i.name for i in res.versions]:
+                return json_response({"message": "Version already exists"}, status=400)
+            session__update = self.database.maker()
+            try:
+                res = await self.database.update_artifact(
+                    session__update,
+                    res,
+                    author=author,
+                    description=description,
+                    tags=tags,
+                )
+            except:
+                await session__update.rollback()
+                raise
+            finally:
+                await session__update.close()
 
         else:
+            session__create = self.database.maker()
             try:
                 res = await self.database.insert_artifact(
-                    session=session3,
+                    session=session__create,
                     name=name,
                     author=author,
                     description=description,
                     tags=tags,
                 )
             except:
-                await session3.rollback()
+                await session__create.rollback()
                 raise
             finally:
-                await session3.close()
+                await session__create.close()
 
-        session4 = self.database.maker()
+        session__insert_version = self.database.maker()
         try:
             ver = await self.database.insert_version(
-                session4,
+                session__insert_version,
                 res.id,
                 name=version_name,
-                hash=sha256(file_bin).hexdigest()
+                hash=sha256(file_bin).hexdigest(),
             )
         except:
-            await session4.rollback()
+            await session__insert_version.rollback()
             raise
         finally:
-            await session4.close()
-        session5 = self.database.maker()
+            await session__insert_version.close()
+
+        session__refresh = self.database.maker()
         try:
-            res = await self.database.get_plugin_by_id(session5, res.id)
+            res = await self.database.get_plugin_by_id(session__refresh, res.id)
         except:
-            await session5.rollback()
+            await session__refresh.rollback()
             raise
         finally:
-            await session5.close()
+            await session__refresh.close()
 
         await b2_upload(f"versions/{ver.hash}.zip", file_bin)
         await self.upload_image(res, image_url)
@@ -249,18 +262,19 @@ class PluginStore:
 
     async def post_announcement(self, plugin):
         webhook = AsyncDiscordWebhook(url=getenv("ANNOUNCEMENT_WEBHOOK"))
-        embed = DiscordEmbed(title=plugin.name, description=plugin.description, color='213997')
+        embed = DiscordEmbed(title=plugin.name, description=plugin.description, color=0x213997)
 
         embed.set_author(
-            name=plugin.author, 
-            icon_url="https://cdn.tzatzikiweeb.moe/file/steam-deck-homebrew/SDHomeBrewwwww.png",
-            url=f"https://github.com/{plugin.author}/{plugin.name}"
+            name=plugin.author,
+            icon_url=f"{CDN_URL}SDHomeBrewwwww.png",
+            url=f"https://github.com/{plugin.author}/{plugin.name}",
         )
-        embed.set_thumbnail(url=f"https://cdn.tzatzikiweeb.moe/file/steam-deck-homebrew/artifact_images/{plugin.name.replace('/', '_')}.png")
+        embed.set_thumbnail(url=f"{CDN_URL}artifact_images/{plugin.name.replace('/', '_')}.png")
         embed.set_footer(text=f"Version {plugin.versions[-1].name}")
 
         webhook.add_embed(embed)
         await webhook.execute()
+
 
 if __name__ == "__main__":
     PluginStore().run()

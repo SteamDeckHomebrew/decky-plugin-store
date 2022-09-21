@@ -129,7 +129,7 @@ def plugin_submit_data(request: "pytest.FixtureRequest") -> "FormData":
             "name": request.param,
             "author": "plugin-author-of-new-plugin",
             "description": "Description of our brand new plugin!",
-            "tags": "new-tag-1,new-tag-2",
+            "tags": "tag-1,new-tag-2",
             "version_name": "2.0.0",
             "image": "https://example.com/image.png",
         },

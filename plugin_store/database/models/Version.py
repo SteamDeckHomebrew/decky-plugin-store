@@ -1,5 +1,7 @@
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, Text
+
 from . import Base
-from sqlalchemy import Column, Integer, Text, ForeignKey, DateTime
+
 
 class Version(Base):
     __tablename__ = "versions"
@@ -13,5 +15,5 @@ class Version(Base):
     def to_dict(self):
         return {
             "name": self.name,
-            "hash": self.hash
+            "hash": self.hash,
         }
