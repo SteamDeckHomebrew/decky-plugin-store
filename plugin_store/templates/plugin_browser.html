@@ -86,7 +86,7 @@
           formData.append("artifact", artifact);
           formData.append("version", version);
           formData.append("hash", this.plugins.find(x => x.name == artifact).selected_version.hash);
-          let res = await fetch("http://localhost:1337/browser/install_plugin", {
+          let res = await fetch("/browser/install_plugin", {
             method: "POST",
             body: formData,
             mode: "no-cors"
