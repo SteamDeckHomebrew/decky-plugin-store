@@ -133,10 +133,11 @@ class PluginStore:
         name = data["name"]
         tags = data["tags"]
         versions = data["versions"]
-        session = self.database.maker()
+        session__update = self.database.maker()
         try:
-            await self.database.delete_plugin(session, plugin_id)
+            await self.database.delete_plugin(session__update, plugin_id)
             res = await self.database.insert_artifact(
+                session=session__update,
                 id=plugin_id,
                 name=name,
                 author=author,
@@ -144,14 +145,14 @@ class PluginStore:
                 tags=tags,
             )
             for version in reversed(versions):
-                await self.database.insert_version(session, res.id, name=version["name"], hash=version["hash"])
-            new_plugin = await self.database.get_plugin_by_id(session, res.id)
+                await self.database.insert_version(session__update, res.id, name=version["name"], hash=version["hash"])
+            new_plugin = await self.database.get_plugin_by_id(session__update, res.id)
             return json_response(new_plugin.to_dict(), status=200)
         except:
-            await session.rollback()
+            await session__update.rollback()
             raise
         finally:
-            await session.close()
+            await session__update.close()
 
     async def submit_plugin(self, request):
         if request.headers.get("Authorization") != getenv("SUBMIT_AUTH_KEY"):
