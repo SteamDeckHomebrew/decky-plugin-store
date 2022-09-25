@@ -1,6 +1,8 @@
-from . import Base
-from sqlalchemy import Column, Integer, Text, Boolean, Table, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, ForeignKey, Integer, Table, Text, UniqueConstraint
 from sqlalchemy.orm import relationship, selectinload
+
+from . import Base
+
 
 class Tag(Base):
     __tablename__ = "tags"
@@ -8,10 +10,14 @@ class Tag(Base):
     id = Column(Integer, primary_key=True)
     tag = Column(Text)
 
-PluginTag = Table("plugin_tag", Base.metadata,
+
+PluginTag = Table(
+    "plugin_tag",
+    Base.metadata,
     Column("artifact_id", Integer, ForeignKey("artifacts.id")),
-    Column("tag_id", Integer, ForeignKey("tags.id"))
+    Column("tag_id", Integer, ForeignKey("tags.id")),
 )
+
 
 class Artifact(Base):
     __tablename__ = "artifacts"
@@ -32,7 +38,8 @@ class Artifact(Base):
             "author": self.author,
             "description": self.description,
             "tags": [i.tag for i in self.tags],
-            "versions": [i.to_dict() for i in reversed(self.versions)]
+            "versions": [i.to_dict() for i in reversed(self.versions)],
         }
+
 
 Artifact._query_options = [selectinload(Artifact.tags), selectinload(Artifact.versions)]

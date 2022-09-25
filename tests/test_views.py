@@ -141,7 +141,7 @@ async def test_submit_endpoint(
             "name": name,
             "author": "plugin-author-of-new-plugin",
             "description": "Description of our brand new plugin!",
-            "tags": ["new-tag-1", "new-tag-2"],
+            "tags": ["tag-1", "new-tag-2"],
             "versions": resulting_versions,
         }
 
@@ -152,7 +152,7 @@ async def test_submit_endpoint(
         assert plugin.author == "plugin-author-of-new-plugin"
         assert plugin.description == "Description of our brand new plugin!"
         assert len(plugin.tags) == 2
-        assert plugin.tags[0].tag == "new-tag-1"
+        assert plugin.tags[0].tag == "tag-1"
         assert plugin.tags[1].tag == "new-tag-2"
         assert len(plugin.versions) == len(resulting_versions)
         for actual, expected in zip(plugin.versions, reversed(resulting_versions)):
