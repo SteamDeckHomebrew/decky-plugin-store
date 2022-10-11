@@ -1,5 +1,9 @@
+from urllib.parse import quote
+
 from sqlalchemy import Column, ForeignKey, Integer, Table, Text, UniqueConstraint
 from sqlalchemy.orm import relationship, selectinload
+
+import constants
 
 from . import Base
 
@@ -26,10 +30,18 @@ class Artifact(Base):
     name = Column(Text)
     author = Column(Text)
     description = Column(Text)
-    tags = relationship("Tag", secondary=PluginTag, cascade="all, delete")
-    versions = relationship("Version", cascade="all, delete")
+    tags = relationship("Tag", secondary=PluginTag, cascade="all, delete", lazy="selectin")
+    versions = relationship("Version", cascade="all, delete", lazy="selectin")
 
     UniqueConstraint("name")
+
+    @property
+    def image_url(self):
+        return f"{constants.CDN_URL}/{self.image_path}"
+
+    @property
+    def image_path(self):
+        return f"artifact_images/{quote(self.name)}.png"
 
     def to_dict(self):
         return {
@@ -37,6 +49,7 @@ class Artifact(Base):
             "name": self.name,
             "author": self.author,
             "description": self.description,
+            "image_url": self.image_url,
             "tags": [i.tag for i in self.tags],
             "versions": [i.to_dict() for i in reversed(self.versions)],
         }
