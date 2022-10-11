@@ -3,20 +3,18 @@ from base64 import b64encode
 from hashlib import sha1, sha256
 from os import getenv, path
 from typing import TYPE_CHECKING
-from urllib.parse import quote
 
 import aiohttp_cors
 from aiohttp import ClientSession
 from aiohttp.web import Application, get, json_response, post, Response, run_app
 from discord_webhook import AsyncDiscordWebhook, DiscordEmbed
+from sqlalchemy.ext.asyncio import AsyncSession
 
+import constants
 from database.database import Database
 
 if TYPE_CHECKING:
     from database.models import Artifact
-
-
-CDN_URL = "https://cdn.tzatzikiweeb.moe/file/steam-deck-homebrew/"
 
 
 async def b2_upload(filename, binary):
@@ -133,10 +131,10 @@ class PluginStore:
         name = data["name"]
         tags = data["tags"]
         versions = data["versions"]
-        session__update = self.database.maker()
+        session__update: AsyncSession = self.database.maker()
         try:
             await self.database.delete_plugin(session__update, plugin_id)
-            res = await self.database.insert_artifact(
+            new_plugin = await self.database.insert_artifact(
                 session=session__update,
                 id=plugin_id,
                 name=name,
@@ -145,8 +143,8 @@ class PluginStore:
                 tags=tags,
             )
             for version in reversed(versions):
-                await self.database.insert_version(session__update, res.id, name=version["name"], hash=version["hash"])
-            new_plugin = await self.database.get_plugin_by_id(session__update, res.id)
+                await self.database.insert_version(session__update, new_plugin.id, **version)
+            await session__update.refresh(new_plugin)
             return json_response(new_plugin.to_dict(), status=200)
         except:
             await session__update.rollback()
@@ -259,7 +257,7 @@ class PluginStore:
         async with ClientSession() as web:
             async with web.get(image_url) as res:
                 if res.status == 200 and res.headers.get("Content-Type") == "image/png":
-                    await b2_upload(f"artifact_images/{quote(plugin.name)}.png", await res.read())
+                    await b2_upload(plugin.image_path, await res.read())
 
     async def post_announcement(self, plugin):
         webhook = AsyncDiscordWebhook(url=getenv("ANNOUNCEMENT_WEBHOOK"))
@@ -267,10 +265,10 @@ class PluginStore:
 
         embed.set_author(
             name=plugin.author,
-            icon_url=f"{CDN_URL}SDHomeBrewwwww.png",
+            icon_url=f"{constants.CDN_URL}SDHomeBrewwwww.png",
             url=f"https://github.com/{plugin.author}/{plugin.name}",
         )
-        embed.set_thumbnail(url=f"{CDN_URL}artifact_images/{plugin.name.replace('/', '_')}.png")
+        embed.set_thumbnail(url=plugin.image_url)
         embed.set_footer(text=f"Version {plugin.versions[-1].name}")
 
         webhook.add_embed(embed)

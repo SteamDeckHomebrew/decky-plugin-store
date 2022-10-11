@@ -31,6 +31,7 @@ async def test_plugins_list_endpoint(seed_db: "Database", client: "TestClient"):
             "author": "author-of-plugin-1",
             "description": "Description of plugin-1",
             "tags": ["tag-1", "tag-2"],
+            "image_url": "hxxp://fake.domain/artifact_images/plugin-1.png",
             "versions": [
                 {"name": "1.0.0", "hash": "f06b77407d0ef08f5667591ab386eeff2090c340f3eadf76006db6d1ac721029"},
                 {"name": "0.2.0", "hash": "750e557099102527b927be4b9e79392c8f4e011d8a5848480afb61fc0de4f5af"},
@@ -43,6 +44,7 @@ async def test_plugins_list_endpoint(seed_db: "Database", client: "TestClient"):
             "author": "author-of-plugin-2",
             "description": "Description of plugin-2",
             "tags": ["tag-1", "tag-3"],
+            "image_url": "hxxp://fake.domain/artifact_images/plugin-2.png",
             "versions": [
                 {"name": "2.0.0", "hash": "56635138a27a6b0c57f0f06cdd58eadf58fff966516c38fca530e2d0f12a3190"},
                 {"name": "1.1.0", "hash": "aeee42b51db3d73c6b75c08ccd46feff21b6de5f41bf1494d147471df850d947"},
@@ -54,6 +56,7 @@ async def test_plugins_list_endpoint(seed_db: "Database", client: "TestClient"):
             "author": "author-of-plugin-3",
             "description": "Description of plugin-3",
             "tags": ["tag-2", "tag-3"],
+            "image_url": "hxxp://fake.domain/artifact_images/plugin-3.png",
             "versions": [
                 {"name": "3.2.0", "hash": "ec2516b144cb429b1473104efcbe345da2b82347fbbb587193a22429a0dc6ab6"},
                 {"name": "3.1.0", "hash": "8d9a561a9fc5c7509b5fe0e54213641e502e3b1e456af34cc44aa0a526f85f9b"},
@@ -66,6 +69,7 @@ async def test_plugins_list_endpoint(seed_db: "Database", client: "TestClient"):
             "author": "author-of-plugin-4",
             "description": "Description of plugin-4",
             "tags": ["tag-1"],
+            "image_url": "hxxp://fake.domain/artifact_images/plugin-4.png",
             "versions": [
                 {"name": "4.0.0", "hash": "8eee479a02359eeb0f30f86f0bec493ba7b31ff738509a3df0f5261dcad8f45f"},
                 {"name": "3.0.0", "hash": "bb70c8d12deee43fb3f2529807b132432c63253c9d27cb9f15f3c4ceae5cfc62"},
@@ -142,6 +146,7 @@ async def test_submit_endpoint(
             "author": "plugin-author-of-new-plugin",
             "description": "Description of our brand new plugin!",
             "tags": ["tag-1", "new-tag-2"],
+            "image_url": f"hxxp://fake.domain/artifact_images/{name}.png",
             "versions": resulting_versions,
         }
 
@@ -158,3 +163,88 @@ async def test_submit_endpoint(
         for actual, expected in zip(plugin.versions, reversed(resulting_versions)):
             assert actual.name == expected["name"]
             assert actual.hash == expected["hash"]
+
+
+@pytest.mark.asyncio
+async def test_update_endpoint_requires_auth(client_unauth: "TestClient"):
+    response = await client_unauth.post("/__update")
+    assert response.status == 403
+
+
+@pytest.mark.asyncio
+async def test_update_endpoint(
+    client_auth: "TestClient",
+    seed_db: "Database",
+):
+    response = await client_auth.post(
+        "/__update",
+        json={
+            "id": 1,
+            "name": "new-plugin-name",
+            "author": "New Author",
+            "description": "New description",
+            "tags": ["new-tag-1", "tag-2"],
+            "versions": [
+                {"name": "30.0.0", "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+                {"name": "32.0.0", "hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+            ],
+        },
+    )
+
+    assert response.status == 200
+
+    assert (await response.json()) == {
+        "id": 1,
+        "name": "new-plugin-name",
+        "author": "New Author",
+        "description": "New description",
+        "tags": ["new-tag-1", "tag-2"],
+        "image_url": "hxxp://fake.domain/artifact_images/new-plugin-name.png",
+        "versions": [
+            {"name": "30.0.0", "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+            {"name": "32.0.0", "hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+        ],
+    }
+
+    session = seed_db.maker()
+    plugin = await seed_db.get_plugin_by_id(session, 1)
+
+    assert plugin.name == "new-plugin-name"
+    assert plugin.author == "New Author"
+    assert plugin.description == "New description"
+    assert len(plugin.tags) == 2
+    assert plugin.tags[0].tag == "new-tag-1"
+    assert plugin.tags[1].tag == "tag-2"
+    assert len(plugin.versions) == 2
+    for actual, expected in zip(
+        plugin.versions,
+        reversed(
+            [
+                {"name": "30.0.0", "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+                {"name": "32.0.0", "hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+            ],
+        ),
+    ):
+        assert actual.name == expected["name"]
+        assert actual.hash == expected["hash"]
+
+
+@pytest.mark.asyncio
+async def test_delete_endpoint_requires_auth(client_unauth: "TestClient"):
+    response = await client_unauth.post("/__delete")
+    assert response.status == 403
+
+
+@pytest.mark.asyncio
+async def test_delete_endpoint(
+    client_auth: "TestClient",
+    seed_db: "Database",
+):
+    response = await client_auth.post("/__delete", json={"id": 1})
+
+    assert response.status == 204
+
+    session = seed_db.maker()
+    plugin = await seed_db.get_plugin_by_id(session, 1)
+
+    assert plugin is None

@@ -31,6 +31,14 @@ def mock_external_services(session_mocker: "MockFixture"):
     session_mocker.patch("main.AsyncDiscordWebhook", new=session_mocker.AsyncMock)
 
 
+@pytest.fixture(scope="session", autouse=True)
+def mock_constants(session_mocker: "MockFixture"):
+    """
+    Auto-mocking some constants to make sure they are used instead of hardcoded values.
+    """
+    session_mocker.patch("constants.CDN_URL", new="hxxp://fake.domain")
+
+
 @pytest.fixture()
 def plugin_store() -> "main.PluginStore":
     return main.PluginStore()
