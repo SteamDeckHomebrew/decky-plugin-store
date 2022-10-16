@@ -36,7 +36,7 @@ def mock_constants(session_mocker: "MockFixture"):
     """
     Auto-mocking some constants to make sure they are used instead of hardcoded values.
     """
-    session_mocker.patch("constants.CDN_URL", new="hxxp://fake.domain")
+    session_mocker.patch("constants.CDN_URL", new="hxxp://fake.domain/")
 
 
 @pytest.fixture()

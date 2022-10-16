@@ -37,7 +37,7 @@ class Artifact(Base):
 
     @property
     def image_url(self):
-        return f"{constants.CDN_URL}/{self.image_path}"
+        return f"{constants.CDN_URL}{self.image_path}"
 
     @property
     def image_path(self):
