@@ -1,6 +1,10 @@
 from typing import TYPE_CHECKING
+from urllib.parse import urlencode
 
 import pytest
+from sqlalchemy import func, select
+
+from database.models.Artifact import Tag
 
 if TYPE_CHECKING:
     from typing import Optional
@@ -21,10 +25,39 @@ async def test_index_endpoint(client: "TestClient", index_template: str):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("client", [pytest.lazy_fixture("client_unauth"), pytest.lazy_fixture("client_auth")])
-async def test_plugins_list_endpoint(seed_db: "Database", client: "TestClient"):
-    response = await client.get("/plugins")
-    assert response.status == 200
-    assert await response.json() == [
+@pytest.mark.parametrize(
+    ("query_filter", "query_plugin_ids"), [
+        (None, {1, 2, 3, 4}),
+        ("plugin-", {1, 2, 4}),
+        ("", {1, 2, 3, 4}),
+        ("third", {3}),
+    ],
+)
+@pytest.mark.parametrize(
+    ("tags_filter", "tag_plugin_ids"), [
+        (None, {1, 2, 3, 4}),
+        ("tag-2", {1, 3}),
+        ("", {1, 2, 3, 4}),
+        ("tag-1,tag-3", {2}),
+    ],
+)
+async def test_plugins_list_endpoint(
+    seed_db: "Database",
+    client: "TestClient",
+    query_filter: str,
+    query_plugin_ids: set[int],
+    tags_filter: str,
+    tag_plugin_ids: set[int],
+):
+    plugin_ids = query_plugin_ids & tag_plugin_ids
+    params = {}
+    if query_filter is not None:
+        params['query'] = query_filter
+    if tags_filter is not None:
+        params['tags'] = tags_filter
+    params = urlencode(params)
+    response = await client.get(f"/plugins?{params}")
+    expected_response = [
         {
             "id": 1,
             "name": "plugin-1",
@@ -52,11 +85,11 @@ async def test_plugins_list_endpoint(seed_db: "Database", client: "TestClient"):
         },
         {
             "id": 3,
-            "name": "plugin-3",
-            "author": "author-of-plugin-3",
-            "description": "Description of plugin-3",
+            "name": "third",
+            "author": "author-of-third",
+            "description": "Description of third",
             "tags": ["tag-2", "tag-3"],
-            "image_url": "hxxp://fake.domain/artifact_images/plugin-3.png",
+            "image_url": "hxxp://fake.domain/artifact_images/third.png",
             "versions": [
                 {"name": "3.2.0", "hash": "ec2516b144cb429b1473104efcbe345da2b82347fbbb587193a22429a0dc6ab6"},
                 {"name": "3.1.0", "hash": "8d9a561a9fc5c7509b5fe0e54213641e502e3b1e456af34cc44aa0a526f85f9b"},
@@ -77,6 +110,10 @@ async def test_plugins_list_endpoint(seed_db: "Database", client: "TestClient"):
                 {"name": "1.0.0", "hash": "51ab66013d901f12a45142248132c0c98539c749b6a3b341ab4da2b9df4cdc09"},
             ],
         },
+    ]
+    assert response.status == 200
+    assert await response.json() == [
+        response_obj for response_obj in expected_response if response_obj["id"] in plugin_ids
     ]
 
 
@@ -145,7 +182,7 @@ async def test_submit_endpoint(
             "name": name,
             "author": "plugin-author-of-new-plugin",
             "description": "Description of our brand new plugin!",
-            "tags": ["tag-1", "new-tag-2"],
+            "tags": ["new-tag-2", "tag-1"],
             "image_url": f"hxxp://fake.domain/artifact_images/{name}.png",
             "versions": resulting_versions,
         }
@@ -157,12 +194,17 @@ async def test_submit_endpoint(
         assert plugin.author == "plugin-author-of-new-plugin"
         assert plugin.description == "Description of our brand new plugin!"
         assert len(plugin.tags) == 2
-        assert plugin.tags[0].tag == "tag-1"
-        assert plugin.tags[1].tag == "new-tag-2"
+        assert plugin.tags[0].tag == "new-tag-2"
+        assert plugin.tags[1].tag == "tag-1"
         assert len(plugin.versions) == len(resulting_versions)
         for actual, expected in zip(plugin.versions, reversed(resulting_versions)):
             assert actual.name == expected["name"]
             assert actual.hash == expected["hash"]
+
+        statement = select(Tag).where(Tag.tag == 'tag-1').with_only_columns([func.count()]).order_by(None)
+        assert (await session.execute(statement)).scalar() == 1
+        statement = select(Tag).where(Tag.tag == 'new-tag-2').with_only_columns([func.count()]).order_by(None)
+        assert (await session.execute(statement)).scalar() == 1
 
 
 @pytest.mark.asyncio
@@ -227,6 +269,11 @@ async def test_update_endpoint(
     ):
         assert actual.name == expected["name"]
         assert actual.hash == expected["hash"]
+
+    statement = select(Tag).where(Tag.tag == 'new-tag-1').with_only_columns([func.count()]).order_by(None)
+    assert (await session.execute(statement)).scalar() == 1
+    statement = select(Tag).where(Tag.tag == 'tag-2').with_only_columns([func.count()]).order_by(None)
+    assert (await session.execute(statement)).scalar() == 1
 
 
 @pytest.mark.asyncio

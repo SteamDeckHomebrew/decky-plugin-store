@@ -30,7 +30,7 @@ class Artifact(Base):
     name = Column(Text)
     author = Column(Text)
     description = Column(Text)
-    tags = relationship("Tag", secondary=PluginTag, cascade="all, delete", lazy="selectin")
+    tags = relationship("Tag", secondary=PluginTag, cascade="all, delete", order_by="Tag.tag", lazy="selectin")
     versions = relationship("Version", cascade="all, delete", lazy="selectin")
 
     UniqueConstraint("name")
@@ -53,6 +53,3 @@ class Artifact(Base):
             "tags": [i.tag for i in self.tags],
             "versions": [i.to_dict() for i in reversed(self.versions)],
         }
-
-
-Artifact._query_options = [selectinload(Artifact.tags), selectinload(Artifact.versions)]
