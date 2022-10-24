@@ -9,6 +9,28 @@ As standard `docker-compose.yml` file is used for deployment, there is a separat
 can use. Just use `docker-compose -f docker-compose.local.yml up` to bring up the project. You can use any 
 `docker-compose` commands normally as long as you add `-f docker-compose.local.yml` argument.
 
+### Using Makefile
+
+There is a handy `Makefile` placed in the root directory of the project. It is not being used in a conventional way
+(to build the code or install built software), it's just creates nie aliases for commands. Here is a list of them:
+
+- `autoformat` - runs autoformatting on the whole Python codebase
+  - `autoformat/black` - runs only `black` command for autoformatting, which unifies codestyle
+  - `autoformat/isort` - runs only `isort` command for autoformatting, which reorders imports
+- `lint` - runs lint check on the whole project
+  - `lint/black` - runs only `black` in check mode. After running black autoformatting, this check should pass
+  - `lint/isort` - runs only `isort` in check mode. After running isort autoformatting, this check should pass
+  <!-- - `lint/flake8` - runs only `flake8` linter. This does not have its own autoformat command, but it should be more
+    or less covered by `black` autoformatting. It's here to make sure black does not leave any gaps in pep8 compliance. -->
+- `deps/lock` - recreates lockfile without changing any package versions when possible. Needs to be executed after 
+  changing project dependencies.
+- `deps/upgrade` - recreates lockfile while trying to upgrade all packages to the newest compatible version.
+<!--
+All commands above can be prefixed with `dc/` to run them directly in a docker container. There are also additional,
+docker only commands:
+-->
+- `dc/build` - rebuilds docker images. Needs to be run after `Dockerfile` or project dependencies change. 
+
 ### Updating dependencies
 
 This project is using Poetry to manage python packages required for the project. Poetry also keeps the lock file to make
@@ -18,13 +40,14 @@ If you want to add any dependency, preferably add it manually in the `pyproject.
 alphabetically sorted to avoid merge conflicts.
 
 If adding or updating a single dependency inside the `pyproject.toml`, you need to update the lockfile. please run
-`poetry lock --no-update` to do as little changes to the lockfile as possible, unless your intention is to refresh
-every single dependency.
+`make deps/lock` to do as little changes to the lockfile as possible, unless your intention is to refresh every single
+dependency, then `make deps/upgrade` should be a better option. But you probably shouldn't use it unless you really
+need to.
 
 ### Running tests
 
-Simply run `pytest ./tests` to run tests on your local machine. If using development docker-compose file, you shall use
-`docker-compose -f docker-compose.local.yml run plugin_store pytest /tests` - note the path change for tests directory.
+Simply run `make test` to run tests on your local machine. If using development docker-compose file, you shall use
+`docker-compose -f docker-compose.local.yml run plugin_store pytest /tests` - note the path in this command is absolute.
 As docker doesn't have the whole project directory mounted, only the sources root directory, tests are mounted 
 separately and currently only for development docker-compose file. 
 

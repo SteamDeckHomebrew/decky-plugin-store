@@ -32,7 +32,7 @@ class Artifact(Base):
     author = Column(Text)
     description = Column(Text)
     tags = relationship("Tag", secondary=PluginTag, cascade="all, delete", order_by="Tag.tag", lazy="selectin")
-    versions = relationship("Version", cascade="all, delete", lazy="selectin")
+    versions = relationship("Version", cascade="all, delete", lazy="selectin", order_by="Version.added_on.desc()")
     visible = Column(Boolean, default=True)
 
     UniqueConstraint("name")
@@ -53,7 +53,7 @@ class Artifact(Base):
             "description": self.description,
             "image_url": self.image_url,
             "tags": [i.tag for i in self.tags],
-            "versions": [i.to_dict() for i in reversed(self.versions)],
+            "versions": [i.to_dict() for i in self.versions],
         }
         if with_visibility:
             result["visible"] = self.visible

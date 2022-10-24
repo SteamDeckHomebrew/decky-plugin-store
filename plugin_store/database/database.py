@@ -1,12 +1,14 @@
+import logging
 from asyncio import Lock
 from datetime import datetime
+from os import getenv
 from typing import TYPE_CHECKING
 
 from alembic import command
 from alembic.config import Config
 from asgiref.sync import sync_to_async
-from sqlalchemy import or_
-from sqlalchemy.exc import NoResultFound
+from fastapi import Depends
+from sqlalchemy.exc import NoResultFound, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import delete, select
@@ -15,16 +17,45 @@ from .models.Artifact import Artifact, PluginTag, Tag
 from .models.Version import Version
 
 if TYPE_CHECKING:
-    from pathlib import Path
-    from typing import Optional, Union
+    from typing import AsyncIterator, Iterable, Optional
+
+logger = logging.getLogger()
+
+
+async_engine = create_async_engine(
+    "sqlite+aiosqlite:///{}".format(getenv("DB_PATH")),
+    pool_pre_ping=True,
+    # echo=settings.ECHO_SQL,
+)
+AsyncSessionLocal = sessionmaker(
+    bind=async_engine, autoflush=False, future=True, expire_on_commit=False, class_=AsyncSession
+)
+
+db_lock = Lock()
+
+
+async def get_session() -> "AsyncIterator[sessionmaker]":
+    try:
+        yield AsyncSessionLocal()
+    except SQLAlchemyError as e:
+        logger.exception(e)
+
+
+async def database(session: "AsyncSession" = Depends(get_session)) -> "AsyncIterator[Database]":
+    db = Database(session, db_lock)
+    try:
+        yield db
+    except:
+        await session.rollback()
+        raise
+    else:
+        await session.close()
 
 
 class Database:
-    def __init__(self, db_path: "Union[str, Path]"):
-        self.db_path = db_path
-        self.engine = create_async_engine("sqlite+aiosqlite:///{}".format(self.db_path))
-        self.lock = Lock()
-        self.maker = sessionmaker(self.engine, expire_on_commit=False, class_=AsyncSession)
+    def __init__(self, session, lock):
+        self.session = session
+        self.lock = lock
 
     @sync_to_async()
     def init(self):
@@ -32,7 +63,6 @@ class Database:
         command.upgrade(alembic_cfg, "head")
 
     async def prepare_tags(self, session: "AsyncSession", tag_names: list[str]) -> "list[Tag]":
-        # nested = await session.begin_nested()
         try:
             statement = select(Tag).where(Tag.tag.in_(tag_names)).order_by(Tag.id)
             tags = list((await session.execute(statement)).scalars())
@@ -43,9 +73,7 @@ class Database:
                     session.add(tag)
                     tags.append(tag)
         except:
-            # await nested.rollback()
             raise
-        # await nested.commit()
         return tags
 
     async def insert_artifact(
@@ -100,7 +128,7 @@ class Database:
         self,
         session: "AsyncSession",
         name: "str" = None,
-        tags: "list[str]" = None,
+        tags: "Iterable[str]" = None,
         include_hidden: "bool" = False,
         limit: int = 50,
         page: int = 0,

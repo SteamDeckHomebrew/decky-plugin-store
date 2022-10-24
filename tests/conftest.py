@@ -7,10 +7,14 @@ from typing import TYPE_CHECKING
 
 import pytest
 import pytest_asyncio
-from aiohttp import FormData
+from httpx import AsyncClient
 from pytest_mock import MockFixture
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
 
 import main
+from api import database as db_dependency
+from database.database import Database
 from database.models import Base
 
 if TYPE_CHECKING:
@@ -19,17 +23,15 @@ if TYPE_CHECKING:
 
     from aiohttp.test_utils import TestClient
     from aiohttp.web_app import Application
-    from sqlalchemy.ext.asyncio import AsyncSession
-
-    from database.database import Database
+    from fastapi import FastAPI
 
 APP_PATH = Path("../app").absolute()
 
 
 @pytest.fixture(scope="session", autouse=True)
 def mock_external_services(session_mocker: "MockFixture"):
-    session_mocker.patch("main.b2_upload")
-    session_mocker.patch("main.AsyncDiscordWebhook", new=session_mocker.AsyncMock)
+    session_mocker.patch("cdn.b2_upload")
+    session_mocker.patch("discord.AsyncDiscordWebhook", new=session_mocker.AsyncMock)
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -41,30 +43,50 @@ def mock_constants(session_mocker: "MockFixture"):
 
 
 @pytest.fixture()
-def plugin_store() -> "main.PluginStore":
-    return main.PluginStore()
+def plugin_store(db: "Database") -> "FastAPI":
+    main.app.dependency_overrides[db_dependency] = lambda: db
+    return main.app
 
 
 # Client for aiohttp server
 @pytest_asyncio.fixture()
 async def client_unauth(
     aiohttp_client: "Callable[[Application], Awaitable[TestClient]]",
-    plugin_store: "main.PluginStore",
-) -> "TestClient":
-    return await aiohttp_client(plugin_store.server)
+    plugin_store: "FastAPI",
+) -> "AsyncClient":
+    async with AsyncClient(app=plugin_store, base_url="http://test") as client:
+        yield client
 
 
 @pytest_asyncio.fixture()
-async def client_auth(client_unauth: "TestClient") -> "TestClient":
-    client_unauth.session.headers["Authorization"] = getenv("SUBMIT_AUTH_KEY")
+async def client_auth(client_unauth: "AsyncClient") -> "AsyncClient":
+    client_unauth.headers["Authorization"] = getenv("SUBMIT_AUTH_KEY")
     return client_unauth
 
 
+@pytest.fixture()
+def db_engine():
+    return create_async_engine(
+        "sqlite+aiosqlite:///{}".format(getenv("DB_PATH")),
+        pool_pre_ping=True,
+        # echo=settings.ECHO_SQL,
+    )
+
+
+@pytest.fixture()
+def db_sessionmaker(db_engine):
+    return sessionmaker(bind=db_engine, autoflush=False, future=True, expire_on_commit=False, class_=AsyncSession)
+
+
 @pytest_asyncio.fixture()
-async def db(plugin_store: "main.PluginStore") -> "Database":
-    async with plugin_store.database.engine.begin() as conn:
+async def _migrate_db(db_engine):
+    async with db_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    return plugin_store.database
+
+
+@pytest_asyncio.fixture()
+async def db(_migrate_db: None, db_sessionmaker: sessionmaker, mocker: "MockFixture") -> "Database":
+    return Database(db_sessionmaker(), lock=mocker.MagicMock())
 
 
 class FakePluginGenerator:
@@ -122,8 +144,8 @@ class FakePluginGenerator:
 
 
 @pytest_asyncio.fixture()
-async def seed_db(db):
-    session = db.maker()
+async def seed_db(db: "Database", db_sessionmaker: "sessionmaker") -> "Database":
+    session = db_sessionmaker()
     generator = FakePluginGenerator(db, session)
     await generator.create("plugin-1", tags=["tag-1", "tag-2"], versions=["0.1.0", "0.2.0", "1.0.0"])
     await generator.create("plugin-2", tags=["tag-1", "tag-3"], versions=["1.1.0", "2.0.0"])
@@ -139,24 +161,19 @@ async def seed_db(db):
 
 
 @pytest.fixture()
-def plugin_submit_data(request: "pytest.FixtureRequest") -> "FormData":
-    data = FormData(
-        {
-            "name": request.param,
-            "author": "plugin-author-of-new-plugin",
-            "description": "Description of our brand new plugin!",
-            "tags": "tag-1,new-tag-2",
-            "version_name": "2.0.0",
-            "image": "https://example.com/image.png",
-        },
-    )
-    data.add_field(
-        "file",
-        "this-is-a-test-file-content",
-        filename="new-release.bin",
-        content_type="application/x-binary",
-    )
-    return data
+def plugin_submit_data(request: "pytest.FixtureRequest") -> "tuple[dict, dict]":
+    data = {
+        "name": request.param,
+        "author": "plugin-author-of-new-plugin",
+        "description": "Description of our brand new plugin!",
+        "tags": "tag-1,new-tag-2",
+        "version_name": "2.0.0",
+        "image": "https://example.com/image.png",
+    }
+    files = {
+        "file": ("new-release.bin", b"this-is-a-test-file-content", "application/x-binary"),
+    }
+    return data, files
 
 
 @pytest.fixture()
