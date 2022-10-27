@@ -29,12 +29,22 @@ class Database:
             await conn.run_sync(Base.metadata.create_all)
 
     async def prepare_tags(self, session: "AsyncSession", tag_names: list[str]) -> "list[Tag]":
-        tags = []
-        for tag_name in tag_names:
-            tag = Tag(tag=tag_name)
-            session.add(tag)
-            tags.append(tag)
+        # nested = await session.begin_nested()
+        try:
+            statement = select(Tag).where(Tag.tag.in_(tag_names)).order_by(Tag.id).distinct(Tag.tag)
+            tags = list((await session.execute(statement)).scalars())
+            existing = [tag.tag for tag in tags]
+            for tag_name in tag_names:
+                if tag_name not in existing:
+                    tag = Tag(tag=tag_name)
+                    session.add(tag)
+                    tags.append(tag)
+        except:
+            # await nested.rollback()
+            raise
+        # await nested.commit()
         return tags
+
 
     async def insert_artifact(self, session: "AsyncSession", **kwargs) -> "Artifact":
         nested = await session.begin_nested()
@@ -80,9 +90,9 @@ class Database:
         return version
 
     async def search(self, session: "AsyncSession", name=None, tags=None, limit=50, page=0) -> list["Artifact"]:
-        statement = select(Artifact).options(*Artifact._query_options).offset(limit * page)
+        statement = select(Artifact).offset(limit * page)
         if name:
-            name_select = select(Artifact).where(Artifact.name.like(f"%{name}%")).options(*Artifact._query_options)
+            name_select = select(Artifact).where(Artifact.name.like(f"%{name}%"))
             content = (await session.execute(name_select)).scalars().all()
             if not content:
                 return []
@@ -94,14 +104,14 @@ class Database:
         return result or []
 
     async def get_plugin_by_name(self, session: "AsyncSession", name: str) -> "Optional[Artifact]":
-        statement = select(Artifact).options(*Artifact._query_options).where(Artifact.name == name)
+        statement = select(Artifact).where(Artifact.name == name)
         try:
             return (await session.execute(statement)).scalars().first()
         except NoResultFound:
             return None
 
     async def get_plugin_by_id(self, session: "AsyncSession", id: int) -> "Optional[Artifact]":
-        statement = select(Artifact).options(*Artifact._query_options).where(Artifact.id == id)
+        statement = select(Artifact).where(Artifact.id == id)
         try:
             return (await session.execute(statement)).scalars().first()
         except NoResultFound:

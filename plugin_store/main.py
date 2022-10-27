@@ -131,11 +131,11 @@ class PluginStore:
         name = data["name"]
         tags = data["tags"]
         versions = data["versions"]
-        session__update: AsyncSession = self.database.maker()
+        session: AsyncSession = self.database.maker()
         try:
-            await self.database.delete_plugin(session__update, plugin_id)
+            await self.database.delete_plugin(session, plugin_id)
             new_plugin = await self.database.insert_artifact(
-                session=session__update,
+                session=session,
                 id=plugin_id,
                 name=name,
                 author=author,
@@ -143,14 +143,14 @@ class PluginStore:
                 tags=tags,
             )
             for version in reversed(versions):
-                await self.database.insert_version(session__update, new_plugin.id, **version)
-            await session__update.refresh(new_plugin)
+                await self.database.insert_version(session, new_plugin.id, **version)
+            await session.refresh(new_plugin)
             return json_response(new_plugin.to_dict(), status=200)
         except:
-            await session__update.rollback()
+            await session.rollback()
             raise
         finally:
-            await session__update.close()
+            await session.close()
 
     async def submit_plugin(self, request):
         if request.headers.get("Authorization") != getenv("SUBMIT_AUTH_KEY"):
@@ -170,88 +170,53 @@ class PluginStore:
         if "force" in data and data["force"]:
             force = data["force"].strip().title() in ["True", "1"]
 
-        session__fetch = self.database.maker()
+        session = self.database.maker()
         try:
-            res = await self.database.get_plugin_by_name(session__fetch, name)
-        except:
-            await session__fetch.rollback()
-            raise
-        finally:
-            await session__fetch.close()
+            artifact = await self.database.get_plugin_by_name(session, name)
 
-        if res and force:
-            session__delete_existing = self.database.maker()
-            try:
-                await self.database.delete_plugin(session__delete_existing, res.id)
-                res = None
-            except:
-                await session__delete_existing.rollback()
-                raise
-            finally:
-                await session__delete_existing.close()
+            if artifact and force:
+                await self.database.delete_plugin(session, artifact.id)
+                artifact = None
 
-        if res is not None:
-            res: "Artifact"
-            if version_name in [i.name for i in res.versions]:
-                return json_response({"message": "Version already exists"}, status=400)
-            session__update = self.database.maker()
-            try:
-                res = await self.database.update_artifact(
-                    session__update,
-                    res,
+            if artifact is not None:
+                artifact: "Artifact"
+                if version_name in [i.name for i in artifact.versions]:
+                    return json_response({"message": "Version already exists"}, status=400)
+                artifact = await self.database.update_artifact(
+                    session,
+                    artifact,
                     author=author,
                     description=description,
                     tags=tags,
                 )
-            except:
-                await session__update.rollback()
-                raise
-            finally:
-                await session__update.close()
 
-        else:
-            session__create = self.database.maker()
-            try:
-                res = await self.database.insert_artifact(
-                    session=session__create,
+            else:
+                artifact = await self.database.insert_artifact(
+                    session=session,
                     name=name,
                     author=author,
                     description=description,
                     tags=tags,
                 )
-            except:
-                await session__create.rollback()
-                raise
-            finally:
-                await session__create.close()
 
-        session__insert_version = self.database.maker()
-        try:
             ver = await self.database.insert_version(
-                session__insert_version,
-                res.id,
+                session,
+                artifact.id,
                 name=version_name,
                 hash=sha256(file_bin).hexdigest(),
             )
-        except:
-            await session__insert_version.rollback()
-            raise
-        finally:
-            await session__insert_version.close()
 
-        session__refresh = self.database.maker()
-        try:
-            res = await self.database.get_plugin_by_id(session__refresh, res.id)
+            await session.refresh(artifact)
         except:
-            await session__refresh.rollback()
+            await session.rollback()
             raise
         finally:
-            await session__refresh.close()
+            await session.close()
 
         await b2_upload(f"versions/{ver.hash}.zip", file_bin)
-        await self.upload_image(res, image_url)
-        await self.post_announcement(res)
-        return json_response(res.to_dict(), status=201)
+        await self.upload_image(artifact, image_url)
+        await self.post_announcement(artifact)
+        return json_response(artifact.to_dict(), status=201)
 
     async def upload_image(self, plugin, image_url):
         async with ClientSession() as web:
