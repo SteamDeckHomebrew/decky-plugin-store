@@ -2,7 +2,7 @@ version: '3'
 services:
   plugin_store:
     build: .
-    container_name: plugin_store
+    container_name: "${DEPLOYMENT_NAME}"
     environment:
         - DB_PATH=/db/plugin_store_new.db
         - ANNOUNCEMENT_WEBHOOK
