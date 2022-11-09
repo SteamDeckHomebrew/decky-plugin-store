@@ -1,15 +1,16 @@
 from urllib.parse import quote
 
 from sqlalchemy import Column, ForeignKey, Integer, Table, Text, UniqueConstraint
-from sqlalchemy.orm import relationship, selectinload
+from sqlalchemy.orm import relationship
 
 import constants
 
-from . import Base
+from .Base import Base
 
 
 class Tag(Base):
     __tablename__ = "tags"
+    __table_args__ = (UniqueConstraint("tag", name="unique_tag_tag"),)
 
     id = Column(Integer, primary_key=True)
     tag = Column(Text)

@@ -1,3 +1,3 @@
-from sqlalchemy.orm import declarative_base
-
-Base = declarative_base()
+from .Artifact import Artifact, PluginTag, Tag
+from .Base import Base
+from .Version import Version

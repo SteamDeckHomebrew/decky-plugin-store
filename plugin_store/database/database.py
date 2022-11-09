@@ -2,13 +2,15 @@ from asyncio import Lock
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from alembic import command
+from alembic.config import Config
+from asgiref.sync import sync_to_async
 from sqlalchemy import or_
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import delete, select
 
-from .models import Base
 from .models.Artifact import Artifact, PluginTag, Tag
 from .models.Version import Version
 
@@ -24,14 +26,15 @@ class Database:
         self.lock = Lock()
         self.maker = sessionmaker(self.engine, expire_on_commit=False, class_=AsyncSession)
 
-    async def init(self):
-        async with self.engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+    @sync_to_async()
+    def init(self):
+        alembic_cfg = Config("/alembic.ini")
+        command.upgrade(alembic_cfg, "head")
 
     async def prepare_tags(self, session: "AsyncSession", tag_names: list[str]) -> "list[Tag]":
         # nested = await session.begin_nested()
         try:
-            statement = select(Tag).where(Tag.tag.in_(tag_names)).order_by(Tag.id).distinct(Tag.tag)
+            statement = select(Tag).where(Tag.tag.in_(tag_names)).order_by(Tag.id)
             tags = list((await session.execute(statement)).scalars())
             existing = [tag.tag for tag in tags]
             for tag_name in tag_names:
@@ -44,7 +47,6 @@ class Database:
             raise
         # await nested.commit()
         return tags
-
 
     async def insert_artifact(self, session: "AsyncSession", **kwargs) -> "Artifact":
         nested = await session.begin_nested()

@@ -26,7 +26,8 @@ async def test_index_endpoint(client: "TestClient", index_template: str):
 @pytest.mark.asyncio
 @pytest.mark.parametrize("client", [pytest.lazy_fixture("client_unauth"), pytest.lazy_fixture("client_auth")])
 @pytest.mark.parametrize(
-    ("query_filter", "query_plugin_ids"), [
+    ("query_filter", "query_plugin_ids"),
+    [
         (None, {1, 2, 3, 4}),
         ("plugin-", {1, 2, 4}),
         ("", {1, 2, 3, 4}),
@@ -34,7 +35,8 @@ async def test_index_endpoint(client: "TestClient", index_template: str):
     ],
 )
 @pytest.mark.parametrize(
-    ("tags_filter", "tag_plugin_ids"), [
+    ("tags_filter", "tag_plugin_ids"),
+    [
         (None, {1, 2, 3, 4}),
         ("tag-2", {1, 3}),
         ("", {1, 2, 3, 4}),
@@ -52,9 +54,9 @@ async def test_plugins_list_endpoint(
     plugin_ids = query_plugin_ids & tag_plugin_ids
     params = {}
     if query_filter is not None:
-        params['query'] = query_filter
+        params["query"] = query_filter
     if tags_filter is not None:
-        params['tags'] = tags_filter
+        params["tags"] = tags_filter
     params = urlencode(params)
     response = await client.get(f"/plugins?{params}")
     expected_response = [
@@ -201,9 +203,9 @@ async def test_submit_endpoint(
             assert actual.name == expected["name"]
             assert actual.hash == expected["hash"]
 
-        statement = select(Tag).where(Tag.tag == 'tag-1').with_only_columns([func.count()]).order_by(None)
+        statement = select(Tag).where(Tag.tag == "tag-1").with_only_columns([func.count()]).order_by(None)
         assert (await session.execute(statement)).scalar() == 1
-        statement = select(Tag).where(Tag.tag == 'new-tag-2').with_only_columns([func.count()]).order_by(None)
+        statement = select(Tag).where(Tag.tag == "new-tag-2").with_only_columns([func.count()]).order_by(None)
         assert (await session.execute(statement)).scalar() == 1
 
 
@@ -270,9 +272,9 @@ async def test_update_endpoint(
         assert actual.name == expected["name"]
         assert actual.hash == expected["hash"]
 
-    statement = select(Tag).where(Tag.tag == 'new-tag-1').with_only_columns([func.count()]).order_by(None)
+    statement = select(Tag).where(Tag.tag == "new-tag-1").with_only_columns([func.count()]).order_by(None)
     assert (await session.execute(statement)).scalar() == 1
-    statement = select(Tag).where(Tag.tag == 'tag-2').with_only_columns([func.count()]).order_by(None)
+    statement = select(Tag).where(Tag.tag == "tag-2").with_only_columns([func.count()]).order_by(None)
     assert (await session.execute(statement)).scalar() == 1
 
 
