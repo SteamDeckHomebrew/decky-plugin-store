@@ -11,6 +11,7 @@ from aiohttp import FormData
 from pytest_mock import MockFixture
 
 import main
+from database.models import Base
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable
@@ -61,7 +62,8 @@ async def client_auth(client_unauth: "TestClient") -> "TestClient":
 
 @pytest_asyncio.fixture()
 async def db(plugin_store: "main.PluginStore") -> "Database":
-    await plugin_store.database.init()
+    async with plugin_store.database.engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     return plugin_store.database
 
 
