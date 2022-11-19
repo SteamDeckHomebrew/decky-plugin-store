@@ -1,6 +1,6 @@
 from urllib.parse import quote
 
-from sqlalchemy import Column, ForeignKey, Integer, Table, Text, UniqueConstraint
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, Table, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 import constants
@@ -33,6 +33,7 @@ class Artifact(Base):
     description = Column(Text)
     tags = relationship("Tag", secondary=PluginTag, cascade="all, delete", order_by="Tag.tag", lazy="selectin")
     versions = relationship("Version", cascade="all, delete", lazy="selectin")
+    visible = Column(Boolean, default=True)
 
     UniqueConstraint("name")
 
@@ -44,8 +45,8 @@ class Artifact(Base):
     def image_path(self):
         return f"artifact_images/{quote(self.name)}.png"
 
-    def to_dict(self):
-        return {
+    def to_dict(self, with_visibility: bool = False):
+        result = {
             "id": self.id,
             "name": self.name,
             "author": self.author,
@@ -54,3 +55,7 @@ class Artifact(Base):
             "tags": [i.tag for i in self.tags],
             "versions": [i.to_dict() for i in reversed(self.versions)],
         }
+        if with_visibility:
+            result["visible"] = self.visible
+
+        return result

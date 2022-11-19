@@ -14,6 +14,8 @@ import constants
 from database.database import Database
 
 if TYPE_CHECKING:
+    from typing import Mapping
+
     from database.models import Artifact
 
 
@@ -89,12 +91,13 @@ class PluginStore:
     async def plugins(self, request):
         query = request.query.get("query")
         tags = request.query.get("tags")
+        include_hidden = self.get_boolean(request.query, "hidden", False)
         if tags:
             tags = [i.strip() for i in tags.split(",")]
         session = self.database.maker()
         try:
-            plugins = await self.database.search(session, query, tags)
-            return json_response([i.to_dict() for i in plugins])
+            plugins = await self.database.search(session, query, tags, include_hidden)
+            return json_response([i.to_dict(with_visibility=include_hidden) for i in plugins])
         except:
             await session.rollback()
             raise
@@ -131,6 +134,7 @@ class PluginStore:
         name = data["name"]
         tags = data["tags"]
         versions = data["versions"]
+        visible = self.get_boolean(data, "visible", True)
         session: AsyncSession = self.database.maker()
         try:
             await self.database.delete_plugin(session, plugin_id)
@@ -141,11 +145,12 @@ class PluginStore:
                 author=author,
                 description=description,
                 tags=tags,
+                visible=visible,
             )
             for version in reversed(versions):
                 await self.database.insert_version(session, new_plugin.id, **version)
             await session.refresh(new_plugin)
-            return json_response(new_plugin.to_dict(), status=200)
+            return json_response(new_plugin.to_dict(with_visibility=True), status=200)
         except:
             await session.rollback()
             raise
@@ -238,6 +243,15 @@ class PluginStore:
 
         webhook.add_embed(embed)
         await webhook.execute()
+
+    @classmethod
+    def get_boolean(cls, data: "Mapping", field: "str", default: "bool") -> "bool":
+        value = data.get(field, default)
+        if isinstance(value, str):
+            value = value.lower()
+            return value in {"t", "true", "1"}
+
+        return bool(value)
 
 
 if __name__ == "__main__":
