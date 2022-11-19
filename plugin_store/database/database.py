@@ -48,18 +48,23 @@ class Database:
         # await nested.commit()
         return tags
 
-    async def insert_artifact(self, session: "AsyncSession", **kwargs) -> "Artifact":
+    async def insert_artifact(
+        self,
+        session: "AsyncSession",
+        *,
+        name: "str",
+        author: "str",
+        description: "str",
+        tags: "list[str]",
+        id: "Optional[int]" = None,
+        visible: "bool" = True,
+    ) -> "Artifact":
         nested = await session.begin_nested()
         async with self.lock:
-            tags = await self.prepare_tags(session, kwargs["tags"])
-            plugin = Artifact(
-                name=kwargs["name"],
-                author=kwargs["author"],
-                description=kwargs["description"],
-                tags=tags,
-            )
-            if "id" in kwargs:
-                plugin.id = kwargs["id"]
+            tags = await self.prepare_tags(session, tags)
+            plugin = Artifact(name=name, author=author, description=description, tags=tags, visible=visible)
+            if id is not None:
+                plugin.id = id
             try:
                 session.add(plugin)
             except:
@@ -91,17 +96,23 @@ class Database:
             await session.commit()
         return version
 
-    async def search(self, session: "AsyncSession", name=None, tags=None, limit=50, page=0) -> list["Artifact"]:
+    async def search(
+        self,
+        session: "AsyncSession",
+        name: "str" = None,
+        tags: "list[str]" = None,
+        include_hidden: "bool" = False,
+        limit: int = 50,
+        page: int = 0,
+    ) -> list["Artifact"]:
         statement = select(Artifact).offset(limit * page)
         if name:
-            name_select = select(Artifact).where(Artifact.name.like(f"%{name}%"))
-            content = (await session.execute(name_select)).scalars().all()
-            if not content:
-                return []
-            statement = statement.filter(or_(*[(Artifact.id == i.id) for i in content]))
+            statement = statement.where(Artifact.name.like(f"%{name}%"))
         if tags:
             for tag in tags:
                 statement = statement.filter(Artifact.tags.any(tag=tag))
+        if not include_hidden:
+            statement = statement.where(Artifact.visible.is_(True))
         result = (await session.execute(statement)).scalars().all()
         return result or []
 

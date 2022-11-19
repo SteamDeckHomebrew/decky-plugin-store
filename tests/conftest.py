@@ -80,6 +80,7 @@ class FakePluginGenerator:
         description: "Optional[str]" = None,
         tags: "Optional[Union[int, list[str]]]" = None,
         versions: "Optional[Union[int, list[str], list[dict]]]" = None,
+        visible: bool = True,
     ):
         if not name:
             name = "".join(random.choices(ascii_lowercase, k=12))
@@ -102,6 +103,7 @@ class FakePluginGenerator:
             author=author,
             description=description,
             tags=tags,
+            visible=visible,
         )
 
         if versions is None:
@@ -123,10 +125,14 @@ class FakePluginGenerator:
 async def seed_db(db):
     session = db.maker()
     generator = FakePluginGenerator(db, session)
-    await generator.create(name="plugin-1", tags=["tag-1", "tag-2"], versions=["0.1.0", "0.2.0", "1.0.0"])
-    await generator.create(name="plugin-2", tags=["tag-1", "tag-3"], versions=["1.1.0", "2.0.0"])
-    await generator.create(name="third", tags=["tag-2", "tag-3"], versions=["3.0.0", "3.1.0", "3.2.0"])
-    await generator.create(name="plugin-4", tags=["tag-1"], versions=["1.0.0", "2.0.0", "3.0.0", "4.0.0"])
+    await generator.create("plugin-1", tags=["tag-1", "tag-2"], versions=["0.1.0", "0.2.0", "1.0.0"])
+    await generator.create("plugin-2", tags=["tag-1", "tag-3"], versions=["1.1.0", "2.0.0"])
+    await generator.create("third", tags=["tag-2", "tag-3"], versions=["3.0.0", "3.1.0", "3.2.0"])
+    await generator.create("plugin-4", tags=["tag-1"], versions=["1.0.0", "2.0.0", "3.0.0", "4.0.0"])
+    await generator.create("plugin-5", tags=["tag-1", "tag-2"], versions=["0.1.0", "0.2.0", "1.0.0"], visible=False)
+    await generator.create("plugin-6", tags=["tag-1", "tag-3"], versions=["1.1.0", "2.0.0"], visible=False)
+    await generator.create("seventh", tags=["tag-2", "tag-3"], versions=["3.0.0", "3.1.0", "3.2.0"], visible=False)
+    await generator.create("plugin-8", tags=["tag-1"], versions=["1.0.0", "2.0.0", "3.0.0", "4.0.0"], visible=False)
     session.commit()
 
     return db
