@@ -16,7 +16,7 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column("artifacts", sa.Column("visible", sa.Boolean(), server_default="True", nullable=True))
+    op.add_column("artifacts", sa.Column("visible", sa.Boolean(), server_default="1", nullable=True))
     with op.batch_alter_table("artifacts") as batch_op:
         batch_op.alter_column("visible", nullable=False)
 
