@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING
 from urllib.parse import urlencode
 
 import pytest
+from fastapi import status
 from sqlalchemy import func, select
 
 from database.models.Artifact import Tag
@@ -9,18 +10,38 @@ from database.models.Artifact import Tag
 if TYPE_CHECKING:
     from typing import Optional, Union
 
-    from aiohttp import FormData
-    from aiohttp.test_utils import TestClient
+    from httpx import AsyncClient
 
     from database.database import Database
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("client", [pytest.lazy_fixture("client_unauth"), pytest.lazy_fixture("client_auth")])
-async def test_index_endpoint(client: "TestClient", index_template: str):
+async def test_index_endpoint(client: "AsyncClient", index_template: str):
     response = await client.get("/")
-    assert response.status == 200
-    assert await response.text() == index_template
+    assert response.status_code == 200
+    assert response.text == index_template
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("client", [pytest.lazy_fixture("client_unauth"), pytest.lazy_fixture("client_auth")])
+@pytest.mark.parametrize(
+    ("origin", "result"),
+    [("https://example.com", status.HTTP_200_OK), ("https://steamloopback.host", status.HTTP_400_BAD_REQUEST)],
+)
+async def test_plugin_list_endpoint_cors(
+    client: "AsyncClient",
+    origin: str,
+    result: int,
+):
+    headers = {
+        "Origin": origin,
+        "Access-Control-Request-Method": "GET",
+        "Access-Control-Request-Headers": "X-Example",
+    }
+    response = await client.options(f"/plugins", headers=headers)
+
+    assert response.status_code == result
 
 
 @pytest.mark.asyncio
@@ -28,38 +49,38 @@ async def test_index_endpoint(client: "TestClient", index_template: str):
 @pytest.mark.parametrize(
     ("query_filter", "query_plugin_ids"),
     [
-        (None, {1, 2, 3, 4, 5, 6, 7, 8}),
-        ("plugin-", {1, 2, 4, 5, 6, 8}),
-        ("", {1, 2, 3, 4, 5, 6, 7, 8}),
-        ("third", {3}),
+        pytest.param(None, {1, 2, 3, 4, 5, 6, 7, 8}, id="no-query"),
+        pytest.param("plugin-", {1, 2, 4, 5, 6, 8}, id="query-plugin-"),
+        pytest.param("", {1, 2, 3, 4, 5, 6, 7, 8}, id="query-empty"),
+        pytest.param("third", {3}, id="query-third"),
     ],
 )
 @pytest.mark.parametrize(
     ("tags_filter", "tag_plugin_ids"),
     [
-        (None, {1, 2, 3, 4, 5, 6, 7, 8}),
-        ("tag-2", {1, 3, 5, 7}),
-        ("", {1, 2, 3, 4, 5, 6, 7, 8}),
-        ("tag-1,tag-3", {2, 6}),
+        pytest.param(None, {1, 2, 3, 4, 5, 6, 7, 8}, id="no-tags"),
+        pytest.param("tag-2", {1, 3, 5, 7}, id="tags-tag-2"),
+        pytest.param("", {1, 2, 3, 4, 5, 6, 7, 8}, id="tags-empty"),
+        pytest.param("tag-1,tag-3", {2, 6}, id="tags-tag-1-tag-3"),
     ],
 )
 @pytest.mark.parametrize(
     ("hidden_filter", "hidden_plugin_ids", "show_visibility"),
     [
-        (None, {1, 2, 3, 4}, False),
-        ("0", {1, 2, 3, 4}, False),
-        ("false", {1, 2, 3, 4}, False),
-        ("False", {1, 2, 3, 4}, False),
-        ("f", {1, 2, 3, 4}, False),
-        ("1", {1, 2, 3, 4, 5, 6, 7, 8}, True),
-        ("true", {1, 2, 3, 4, 5, 6, 7, 8}, True),
-        ("True", {1, 2, 3, 4, 5, 6, 7, 8}, True),
-        ("t", {1, 2, 3, 4, 5, 6, 7, 8}, True),
+        pytest.param(None, {1, 2, 3, 4}, False, id="no-hidden"),
+        pytest.param("0", {1, 2, 3, 4}, False, id="hidden-0"),
+        pytest.param("false", {1, 2, 3, 4}, False, id="hidden-false"),
+        pytest.param("False", {1, 2, 3, 4}, False, id="hidden-False"),
+        pytest.param("f", {1, 2, 3, 4}, False, id="hidden=f"),
+        pytest.param("1", {1, 2, 3, 4, 5, 6, 7, 8}, True, id="hidden-1"),
+        pytest.param("true", {1, 2, 3, 4, 5, 6, 7, 8}, True, id="hidden-true"),
+        pytest.param("True", {1, 2, 3, 4, 5, 6, 7, 8}, True, id="hidden-True"),
+        pytest.param("t", {1, 2, 3, 4, 5, 6, 7, 8}, True, id="hidden-t"),
     ],
 )
 async def test_plugins_list_endpoint(
     seed_db: "Database",
-    client: "TestClient",
+    client: "AsyncClient",
     query_filter: "Optional[str]",
     query_plugin_ids: set[int],
     tags_filter: "Optional[str]",
@@ -192,10 +213,8 @@ async def test_plugins_list_endpoint(
             **({"visible": False} if show_visibility else {}),
         },
     ]
-    assert response.status == 200
-    assert await response.json() == [
-        response_obj for response_obj in expected_response if response_obj["id"] in plugin_ids
-    ]
+    assert response.status_code == 200
+    assert response.json() == [response_obj for response_obj in expected_response if response_obj["id"] in plugin_ids]
 
 
 @pytest.mark.asyncio
@@ -203,15 +222,15 @@ async def test_plugins_list_endpoint(
     ("client", "return_code"),
     [(pytest.lazy_fixture("client_unauth"), 403), (pytest.lazy_fixture("client_auth"), 200)],
 )
-async def test_auth_endpoint(client: "TestClient", return_code: int):
+async def test_auth_endpoint(client: "AsyncClient", return_code: int):
     response = await client.post("/__auth")
-    assert response.status == return_code
+    assert response.status_code == return_code
 
 
 @pytest.mark.asyncio
-async def test_submit_endpoint_requires_auth(client_unauth: "TestClient"):
+async def test_submit_endpoint_requires_auth(client_unauth: "AsyncClient"):
     response = await client_unauth.post("/__submit")
-    assert response.status == 403
+    assert response.status_code == 403
 
 
 @pytest.mark.parametrize(
@@ -222,7 +241,7 @@ async def test_submit_endpoint_requires_auth(client_unauth: "TestClient"):
             "new-plugin",
             1,
             "new-plugin",
-            201,
+            status.HTTP_201_CREATED,
             [{"name": "2.0.0", "hash": "378d3213bf3c5d1924891c05659425e7d62bb786665cb2eb5c88564a327b03c7"}],
             None,
             True,
@@ -232,7 +251,7 @@ async def test_submit_endpoint_requires_auth(client_unauth: "TestClient"):
             "plugin-1",
             1,
             "plugin-1",
-            201,
+            status.HTTP_201_CREATED,
             [
                 {"name": "2.0.0", "hash": "378d3213bf3c5d1924891c05659425e7d62bb786665cb2eb5c88564a327b03c7"},
                 {"name": "1.0.0", "hash": "f06b77407d0ef08f5667591ab386eeff2090c340f3eadf76006db6d1ac721029"},
@@ -247,7 +266,7 @@ async def test_submit_endpoint_requires_auth(client_unauth: "TestClient"):
             "plugin-5",
             5,
             "plugin-5",
-            201,
+            status.HTTP_201_CREATED,
             [
                 {"name": "2.0.0", "hash": "378d3213bf3c5d1924891c05659425e7d62bb786665cb2eb5c88564a327b03c7"},
                 {"name": "1.0.0", "hash": "562eec14bf4b01c5769acb1b8854b3382b7bbc7333f45d2fd200a752f72fa3a0"},
@@ -269,9 +288,9 @@ async def test_submit_endpoint_requires_auth(client_unauth: "TestClient"):
 )
 @pytest.mark.asyncio
 async def test_submit_endpoint(
-    client_auth: "TestClient",
+    client_auth: "AsyncClient",
     db_fixture: "Database",
-    plugin_submit_data: "FormData",
+    plugin_submit_data: "tuple[dict, dict]",
     id: int,
     name: str,
     return_code: int,
@@ -279,12 +298,13 @@ async def test_submit_endpoint(
     error_msg: "Optional[str]",
     is_visible: bool,
 ):
-    response = await client_auth.post("/__submit", data=plugin_submit_data)
-    assert response.status == return_code
-    if return_code >= 400:
-        assert (await response.json())["message"] == error_msg
+    submit_data, submit_files = plugin_submit_data
+    response = await client_auth.post("/__submit", data=submit_data, files=submit_files)
+    assert response.status_code == return_code, response.text
+    if return_code >= status.HTTP_400_BAD_REQUEST:
+        assert response.json()["message"] == error_msg
     else:
-        assert await response.json() == {
+        assert response.json() == {
             "id": id,
             "name": name,
             "author": "plugin-author-of-new-plugin",
@@ -294,8 +314,7 @@ async def test_submit_endpoint(
             "versions": resulting_versions,
         }
 
-        session = db_fixture.maker()
-        plugin = await db_fixture.get_plugin_by_id(session, id)
+        plugin = await db_fixture.get_plugin_by_id(db_fixture.session, id)
 
         assert plugin.name == name
         assert plugin.author == "plugin-author-of-new-plugin"
@@ -305,17 +324,17 @@ async def test_submit_endpoint(
         assert plugin.tags[1].tag == "tag-1"
         assert len(plugin.versions) == len(resulting_versions)
         assert plugin.visible is is_visible
-        for actual, expected in zip(plugin.versions, reversed(resulting_versions)):
+        for actual, expected in zip(plugin.versions, resulting_versions):
             assert actual.name == expected["name"]
             assert actual.hash == expected["hash"]
 
         statement = select(Tag).where(Tag.tag == "tag-1").with_only_columns([func.count()]).order_by(None)
-        assert (await session.execute(statement)).scalar() == 1
+        assert (await db_fixture.session.execute(statement)).scalar() == 1
         statement = select(Tag).where(Tag.tag == "new-tag-2").with_only_columns([func.count()]).order_by(None)
-        assert (await session.execute(statement)).scalar() == 1
+        assert (await db_fixture.session.execute(statement)).scalar() == 1
 
         list_response = await client_auth.get(f"/plugins")
-        returned_ids = {plugin["id"] for plugin in (await list_response.json())}
+        returned_ids = {plugin["id"] for plugin in list_response.json()}
         if is_visible:
             assert id in returned_ids
         else:
@@ -323,16 +342,16 @@ async def test_submit_endpoint(
 
 
 @pytest.mark.asyncio
-async def test_update_endpoint_requires_auth(client_unauth: "TestClient"):
+async def test_update_endpoint_requires_auth(client_unauth: "AsyncClient"):
     response = await client_unauth.post("/__update")
-    assert response.status == 403
+    assert response.status_code == 403
 
 
 @pytest.mark.parametrize("make_visible", (True, False))
 @pytest.mark.parametrize("pick_visible", (True, False))
 @pytest.mark.asyncio
 async def test_update_endpoint(
-    client_auth: "TestClient",
+    client_auth: "AsyncClient",
     seed_db: "Database",
     pick_visible: bool,
     make_visible: bool,
@@ -353,9 +372,9 @@ async def test_update_endpoint(
         },
     )
 
-    assert response.status == 200
+    assert response.status_code == status.HTTP_200_OK, response.json()
 
-    assert (await response.json()) == {
+    assert (response.json()) == {
         "id": 1 if pick_visible else 5,
         "name": "new-plugin-name",
         "author": "New Author",
@@ -369,8 +388,7 @@ async def test_update_endpoint(
         "visible": make_visible,
     }
 
-    session = seed_db.maker()
-    plugin = await seed_db.get_plugin_by_id(session, 1 if pick_visible else 5)
+    plugin = await seed_db.get_plugin_by_id(seed_db.session, 1 if pick_visible else 5)
 
     assert plugin.name == "new-plugin-name"
     assert plugin.author == "New Author"
@@ -382,38 +400,35 @@ async def test_update_endpoint(
     assert len(plugin.versions) == 2
     for actual, expected in zip(
         plugin.versions,
-        reversed(
-            [
-                {"name": "30.0.0", "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
-                {"name": "32.0.0", "hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
-            ],
-        ),
+        [
+            {"name": "30.0.0", "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+            {"name": "32.0.0", "hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+        ],
     ):
         assert actual.name == expected["name"]
         assert actual.hash == expected["hash"]
 
     statement = select(Tag).where(Tag.tag == "new-tag-1").with_only_columns([func.count()]).order_by(None)
-    assert (await session.execute(statement)).scalar() == 1
+    assert (await seed_db.session.execute(statement)).scalar() == 1
     statement = select(Tag).where(Tag.tag == "tag-2").with_only_columns([func.count()]).order_by(None)
-    assert (await session.execute(statement)).scalar() == 1
+    assert (await seed_db.session.execute(statement)).scalar() == 1
 
 
 @pytest.mark.asyncio
-async def test_delete_endpoint_requires_auth(client_unauth: "TestClient"):
+async def test_delete_endpoint_requires_auth(client_unauth: "AsyncClient"):
     response = await client_unauth.post("/__delete")
-    assert response.status == 403
+    assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 @pytest.mark.asyncio
 async def test_delete_endpoint(
-    client_auth: "TestClient",
+    client_auth: "AsyncClient",
     seed_db: "Database",
 ):
     response = await client_auth.post("/__delete", json={"id": 1})
 
-    assert response.status == 204
+    assert response.status_code == status.HTTP_204_NO_CONTENT
 
-    session = seed_db.maker()
-    plugin = await seed_db.get_plugin_by_id(session, 1)
+    plugin = await seed_db.get_plugin_by_id(seed_db.session, 1)
 
     assert plugin is None
