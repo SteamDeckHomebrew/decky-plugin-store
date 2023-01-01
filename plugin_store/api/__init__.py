@@ -96,7 +96,6 @@ async def submit_release(
     data: "api_submit.SubmitProductRequest" = FormBody(api_submit.SubmitProductRequest),
     db: "Database" = Depends(database),
 ):
-    pass
     plugin = await db.get_plugin_by_name(db.session, data.name)
 
     if plugin and data.force:
@@ -122,17 +121,12 @@ async def submit_release(
             tags=list(filter(None, reduce(add, (el.split(",") for el in data.tags), []))),
         )
 
-    await db.insert_version(
-        db.session,
-        plugin.id,
-        name=data.version_name,
-        **await upload_version(data.file)
-    )
+    version = await db.insert_version(db.session, plugin.id, name=data.version_name, **await upload_version(data.file))
 
     await db.session.refresh(plugin)
 
     await upload_image(plugin, data.image)
-    await post_announcement(plugin)
+    await post_announcement(plugin, version)
     return plugin
 
 
