@@ -1,5 +1,3 @@
-from pydantic import BaseModel
-
 from api.models.base import BasePluginRequest, BasePluginResponse
 
 

@@ -3,7 +3,9 @@ from urllib.parse import urlencode
 
 import pytest
 from fastapi import status
+from pytest_lazyfixture import lazy_fixture
 from sqlalchemy import func, select
+from sqlalchemy.exc import NoResultFound
 
 from database.models.Artifact import Tag
 
@@ -14,7 +16,7 @@ if TYPE_CHECKING:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("client", [pytest.lazy_fixture("client_unauth"), pytest.lazy_fixture("client_auth")])
+@pytest.mark.parametrize("client", [lazy_fixture("client_unauth"), lazy_fixture("client_auth")])
 async def test_index_endpoint(client: "AsyncClient", index_template: str):
     response = await client.get("/")
     assert response.status_code == 200
@@ -22,7 +24,7 @@ async def test_index_endpoint(client: "AsyncClient", index_template: str):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("client", [pytest.lazy_fixture("client_unauth"), pytest.lazy_fixture("client_auth")])
+@pytest.mark.parametrize("client", [lazy_fixture("client_unauth"), lazy_fixture("client_auth")])
 @pytest.mark.parametrize(
     ("origin", "result"),
     [("https://example.com", status.HTTP_400_BAD_REQUEST), ("https://steamloopback.host", status.HTTP_200_OK)],
@@ -37,13 +39,13 @@ async def test_plugin_list_endpoint_cors(
         "Access-Control-Request-Method": "GET",
         "Access-Control-Request-Headers": "X-Example",
     }
-    response = await client.options(f"/plugins", headers=headers)
+    response = await client.options("/plugins", headers=headers)
 
     assert response.status_code == result
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("client", [pytest.lazy_fixture("client_unauth"), pytest.lazy_fixture("client_auth")])
+@pytest.mark.parametrize("client", [lazy_fixture("client_unauth"), lazy_fixture("client_auth")])
 @pytest.mark.parametrize(
     ("query_filter", "query_plugin_ids"),
     [
@@ -88,15 +90,14 @@ async def test_plugins_list_endpoint(
     show_visibility: bool,
 ):
     plugin_ids = query_plugin_ids & tag_plugin_ids & hidden_plugin_ids
-    params = {}
+    params: dict[str, str | bool] = {}
     if query_filter is not None:
         params["query"] = query_filter
     if tags_filter is not None:
         params["tags"] = tags_filter
     if hidden_filter is not None:
         params["hidden"] = hidden_filter
-    params = urlencode(params)
-    response = await client.get(f"/plugins?{params}")
+    response = await client.get(f"/plugins?{urlencode(params)}")
     expected_response = [
         {
             "id": 1,
@@ -218,7 +219,7 @@ async def test_plugins_list_endpoint(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("client", "return_code"),
-    [(pytest.lazy_fixture("client_unauth"), 403), (pytest.lazy_fixture("client_auth"), 200)],
+    [(lazy_fixture("client_unauth"), 403), (lazy_fixture("client_auth"), 200)],
 )
 async def test_auth_endpoint(client: "AsyncClient", return_code: int):
     response = await client.post("/__auth")
@@ -235,7 +236,7 @@ async def test_submit_endpoint_requires_auth(client_unauth: "AsyncClient"):
     ("db_fixture", "plugin_submit_data", "id", "name", "return_code", "resulting_versions", "error_msg", "is_visible"),
     [
         (
-            pytest.lazy_fixture("db"),
+            lazy_fixture("db"),
             "new-plugin",
             1,
             "new-plugin",
@@ -245,7 +246,7 @@ async def test_submit_endpoint_requires_auth(client_unauth: "AsyncClient"):
             True,
         ),
         (
-            pytest.lazy_fixture("seed_db"),
+            lazy_fixture("seed_db"),
             "plugin-1",
             1,
             "plugin-1",
@@ -260,7 +261,7 @@ async def test_submit_endpoint_requires_auth(client_unauth: "AsyncClient"):
             True,
         ),
         (
-            pytest.lazy_fixture("seed_db"),
+            lazy_fixture("seed_db"),
             "plugin-5",
             5,
             "plugin-5",
@@ -274,7 +275,7 @@ async def test_submit_endpoint_requires_auth(client_unauth: "AsyncClient"):
             None,
             False,
         ),
-        (pytest.lazy_fixture("seed_db"), "plugin-2", 1, "plugin-2", 400, [], "Version already exists", True),
+        (lazy_fixture("seed_db"), "plugin-2", 1, "plugin-2", 400, [], "Version already exists", True),
     ],
     ids=[
         "creates_new_plugin",
@@ -314,6 +315,8 @@ async def test_submit_endpoint(
 
         plugin = await db_fixture.get_plugin_by_id(db_fixture.session, id)
 
+        assert plugin is not None
+
         assert plugin.name == name
         assert plugin.author == "plugin-author-of-new-plugin"
         assert plugin.description == "Description of our brand new plugin!"
@@ -331,7 +334,7 @@ async def test_submit_endpoint(
         statement = select(Tag).where(Tag.tag == "new-tag-2").with_only_columns([func.count()]).order_by(None)
         assert (await db_fixture.session.execute(statement)).scalar() == 1
 
-        list_response = await client_auth.get(f"/plugins")
+        list_response = await client_auth.get("/plugins")
         returned_ids = {plugin["id"] for plugin in list_response.json()}
         if is_visible:
             assert id in returned_ids
@@ -388,6 +391,8 @@ async def test_update_endpoint(
 
     plugin = await seed_db.get_plugin_by_id(seed_db.session, 1 if pick_visible else 5)
 
+    assert plugin is not None
+
     assert plugin.name == "new-plugin-name"
     assert plugin.author == "New Author"
     assert plugin.description == "New description"
@@ -427,6 +432,5 @@ async def test_delete_endpoint(
 
     assert response.status_code == status.HTTP_204_NO_CONTENT
 
-    plugin = await seed_db.get_plugin_by_id(seed_db.session, 1)
-
-    assert plugin is None
+    with pytest.raises(NoResultFound):
+        await seed_db.get_plugin_by_id(seed_db.session, 1)

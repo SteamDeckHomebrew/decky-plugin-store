@@ -1,5 +1,4 @@
 from functools import reduce
-from hashlib import sha256
 from operator import add
 from os import getenv
 from typing import TYPE_CHECKING
@@ -76,7 +75,7 @@ async def plugins_list(
     hidden: bool = False,
     db: "Database" = Depends(database),
 ):
-    tags = filter(None, reduce(add, (el.split(",") for el in tags), []))
+    tags = list(filter(None, reduce(add, (el.split(",") for el in tags), [])))
     plugins = await db.search(db.session, query, tags, hidden)
     return (plugin.to_dict(with_visibility=hidden) for plugin in plugins)
 

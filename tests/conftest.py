@@ -49,14 +49,14 @@ def plugin_store(db: "Database") -> "FastAPI":
 @pytest_asyncio.fixture()
 async def client_unauth(
     plugin_store: "FastAPI",
-) -> "AsyncClient":
+) -> "AsyncIterator[AsyncClient]":
     async with AsyncClient(app=plugin_store, base_url="http://test") as client:
         yield client
 
 
 @pytest_asyncio.fixture()
 async def client_auth(client_unauth: "AsyncClient") -> "AsyncClient":
-    client_unauth.headers["Authorization"] = getenv("SUBMIT_AUTH_KEY")
+    client_unauth.headers["Authorization"] = getenv("SUBMIT_AUTH_KEY", "")
     return client_unauth
 
 

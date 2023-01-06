@@ -10,8 +10,8 @@ autoformat/isort:
 
 autoformat: autoformat/black autoformat/isort
 
-#lint/flake8:
-#	flake8 plugin_store/ tests/
+lint/flake8:
+	flake8 plugin_store/ tests/
 
 lint/isort:
 	isort --check --diff plugin_store/ tests/
@@ -19,7 +19,7 @@ lint/isort:
 lint/black:
 	black --check --diff plugin_store/ tests/
 
-lint: lint/black lint/isort
+lint: lint/black lint/isort lint/flake8
 
 dc/build:
 	docker-compose -f docker-compose.local.yml build

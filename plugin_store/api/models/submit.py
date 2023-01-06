@@ -1,4 +1,4 @@
-from fastapi import Form, UploadFile
+from fastapi import UploadFile
 from pydantic import BaseModel, HttpUrl
 
 from api.models.base import BasePluginResponseWithoutVisibility

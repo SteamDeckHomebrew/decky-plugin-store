@@ -1,3 +1,4 @@
+from typing import TYPE_CHECKING
 from urllib.parse import quote
 
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, Table, Text, UniqueConstraint
@@ -6,6 +7,9 @@ from sqlalchemy.orm import relationship
 import constants
 
 from .Base import Base
+
+if TYPE_CHECKING:
+    from .Version import Version
 
 
 class Tag(Base):
@@ -27,13 +31,17 @@ PluginTag = Table(
 class Artifact(Base):
     __tablename__ = "artifacts"
 
-    id = Column(Integer, autoincrement=True, primary_key=True)
-    name = Column(Text)
-    author = Column(Text)
-    description = Column(Text)
-    tags = relationship("Tag", secondary=PluginTag, cascade="all, delete", order_by="Tag.tag", lazy="selectin")
-    versions = relationship("Version", cascade="all, delete", lazy="selectin", order_by="Version.added_on.desc()")
-    visible = Column(Boolean, default=True)
+    id: int = Column(Integer, autoincrement=True, primary_key=True)
+    name: str = Column(Text)
+    author: str = Column(Text)
+    description: str = Column(Text)
+    tags: "list[Tag]" = relationship(
+        "Tag", secondary=PluginTag, cascade="all, delete", order_by="Tag.tag", lazy="selectin"
+    )
+    versions: "list[Version]" = relationship(
+        "Version", cascade="all, delete", lazy="selectin", order_by="Version.added_on.desc()"
+    )
+    visible: bool = Column(Boolean, default=True)
 
     UniqueConstraint("name")
 

@@ -55,7 +55,8 @@ class PluginTagResponse(BaseModel):
 
     def dict(self, **kwargs) -> "DictStrAny":
         if self.__custom_root_type__:
-            data = super().dict(**{**kwargs, "by_alias": False})
+            kwargs["by_alias"] = False
+            data = super().dict(**kwargs)
             return data[ROOT_KEY]
         return super().dict(**kwargs)
 
@@ -69,8 +70,8 @@ class BasePluginResponseWithoutVisibility(PluginWithoutVisibility):
     class Config:
         orm_mode = True
 
-    tags: list[PluginTagResponse]
-    versions: list[PluginVersionResponse]
+    tags: list[PluginTagResponse]  # type: ignore[assignment]
+    versions: list[PluginVersionResponse]  # type: ignore[assignment]
 
     @classmethod
     def from_orm(cls, *args, **kwargs):
@@ -81,5 +82,5 @@ class BasePluginResponse(Plugin):
     class Config:
         orm_mode = True
 
-    tags: list[PluginTagResponse]
-    versions: list[PluginVersionResponse]
+    tags: list[PluginTagResponse]  # type: ignore[assignment]
+    versions: list[PluginVersionResponse]  # type: ignore[assignment]

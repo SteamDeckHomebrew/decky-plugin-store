@@ -70,9 +70,10 @@ async def run_migrations_online() -> None:
 
     """
     config_section = config.get_section(config.config_ini_section)
+    assert config_section is not None
     config_section["sqlalchemy.url"] = config_section["sqlalchemy.url"].format(DB_PATH=getenv("DB_PATH"))
     connectable = AsyncEngine(
-        engine_from_config(
+        engine_from_config(  # type: ignore[arg-type]
             config_section,
             prefix="sqlalchemy.",
             poolclass=pool.NullPool,
