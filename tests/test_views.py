@@ -8,8 +8,6 @@ from sqlalchemy import func, select
 from database.models.Artifact import Tag
 
 if TYPE_CHECKING:
-    from typing import Optional, Union
-
     from httpx import AsyncClient
 
     from database.database import Database
@@ -27,7 +25,7 @@ async def test_index_endpoint(client: "AsyncClient", index_template: str):
 @pytest.mark.parametrize("client", [pytest.lazy_fixture("client_unauth"), pytest.lazy_fixture("client_auth")])
 @pytest.mark.parametrize(
     ("origin", "result"),
-    [("https://example.com", status.HTTP_200_OK), ("https://steamloopback.host", status.HTTP_400_BAD_REQUEST)],
+    [("https://example.com", status.HTTP_400_BAD_REQUEST), ("https://steamloopback.host", status.HTTP_200_OK)],
 )
 async def test_plugin_list_endpoint_cors(
     client: "AsyncClient",
@@ -81,11 +79,11 @@ async def test_plugin_list_endpoint_cors(
 async def test_plugins_list_endpoint(
     seed_db: "Database",
     client: "AsyncClient",
-    query_filter: "Optional[str]",
+    query_filter: "str | None",
     query_plugin_ids: set[int],
-    tags_filter: "Optional[str]",
+    tags_filter: "str | None",
     tag_plugin_ids: set[int],
-    hidden_filter: "Union[str, bool, None]",
+    hidden_filter: "str | bool | None",
     hidden_plugin_ids: set[int],
     show_visibility: bool,
 ):
@@ -295,7 +293,7 @@ async def test_submit_endpoint(
     name: str,
     return_code: int,
     resulting_versions: list[dict],
-    error_msg: "Optional[str]",
+    error_msg: "str | None",
     is_visible: bool,
 ):
     submit_data, submit_files = plugin_submit_data

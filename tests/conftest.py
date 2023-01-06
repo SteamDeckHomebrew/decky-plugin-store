@@ -18,11 +18,8 @@ from database.database import Database
 from database.models import Base
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable
-    from typing import Callable, Optional, Union
+    from typing import AsyncIterator
 
-    from aiohttp.test_utils import TestClient
-    from aiohttp.web_app import Application
     from fastapi import FastAPI
 
 APP_PATH = Path("../app").absolute()
@@ -51,7 +48,6 @@ def plugin_store(db: "Database") -> "FastAPI":
 # Client for aiohttp server
 @pytest_asyncio.fixture()
 async def client_unauth(
-    aiohttp_client: "Callable[[Application], Awaitable[TestClient]]",
     plugin_store: "FastAPI",
 ) -> "AsyncClient":
     async with AsyncClient(app=plugin_store, base_url="http://test") as client:
@@ -97,11 +93,11 @@ class FakePluginGenerator:
 
     async def create(
         self,
-        name: "Optional[str]" = None,
-        author: "Optional[str]" = None,
-        description: "Optional[str]" = None,
-        tags: "Optional[Union[int, list[str]]]" = None,
-        versions: "Optional[Union[int, list[str], list[dict]]]" = None,
+        name: "str | None" = None,
+        author: "str | None" = None,
+        description: "str | None" = None,
+        tags: "int | list[str] | None" = None,
+        versions: "int | list[str] | list[dict] | None" = None,
         visible: bool = True,
     ):
         if not name:

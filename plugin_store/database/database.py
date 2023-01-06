@@ -17,7 +17,7 @@ from .models.Artifact import Artifact, PluginTag, Tag
 from .models.Version import Version
 
 if TYPE_CHECKING:
-    from typing import AsyncIterator, Iterable, Optional
+    from typing import AsyncIterator, Iterable
 
 logger = logging.getLogger()
 
@@ -84,7 +84,7 @@ class Database:
         author: "str",
         description: "str",
         tags: "list[str]",
-        id: "Optional[int]" = None,
+        id: "int | None" = None,
         visible: "bool" = True,
     ) -> "Artifact":
         nested = await session.begin_nested()
@@ -127,8 +127,8 @@ class Database:
     async def search(
         self,
         session: "AsyncSession",
-        name: "str" = None,
-        tags: "Iterable[str]" = None,
+        name: "str | None" = None,
+        tags: "Iterable[str] | None" = None,
         include_hidden: "bool" = False,
         limit: int = 50,
         page: int = 0,
@@ -144,14 +144,14 @@ class Database:
         result = (await session.execute(statement)).scalars().all()
         return result or []
 
-    async def get_plugin_by_name(self, session: "AsyncSession", name: str) -> "Optional[Artifact]":
+    async def get_plugin_by_name(self, session: "AsyncSession", name: str) -> "Artifact | None":
         statement = select(Artifact).where(Artifact.name == name)
         try:
             return (await session.execute(statement)).scalars().first()
         except NoResultFound:
             return None
 
-    async def get_plugin_by_id(self, session: "AsyncSession", id: int) -> "Optional[Artifact]":
+    async def get_plugin_by_id(self, session: "AsyncSession", id: int) -> "Artifact | None":
         statement = select(Artifact).where(Artifact.id == id)
         try:
             return (await session.execute(statement)).scalars().first()

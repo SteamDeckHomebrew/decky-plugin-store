@@ -1,10 +1,10 @@
-FROM python:3.9.14-alpine3.16
+FROM python:3.11.1-alpine3.17
 
 RUN apk add build-base
 RUN apk add openssl-dev
 RUN apk add python3-dev
 RUN apk add curl libffi-dev  \
-    && curl -sSL https://install.python-poetry.org | python - --version 1.2.0 \
+    && curl -sSL https://install.python-poetry.org | python - --version 1.3.1 \
     && apk del curl libffi-dev
 
 ENV PATH="/root/.local/bin:$PATH"

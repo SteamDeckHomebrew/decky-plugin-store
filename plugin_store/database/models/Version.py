@@ -1,6 +1,6 @@
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, Text
 
-from . import Base
+from .Base import Base
 
 
 class Version(Base):
