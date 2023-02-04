@@ -12,7 +12,7 @@ can use. Just use `docker-compose -f docker-compose.local.yml up` to bring up th
 ### Using Makefile
 
 There is a handy `Makefile` placed in the root directory of the project. It is not being used in a conventional way
-(to build the code or install built software), it's just creates nie aliases for commands. Here is a list of them:
+(to build the code or install built software), it's just creates nice aliases for commands. Here is a list of them:
 
 - `autoformat` - runs autoformatting on the whole Python codebase
   - `autoformat/black` - runs only `black` command for autoformatting, which unifies codestyle
