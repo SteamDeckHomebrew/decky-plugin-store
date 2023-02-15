@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
     from fastapi import FastAPI
 
-APP_PATH = Path("../app").absolute()
+APP_PATH = Path("./plugin_store").absolute()
 
 
 @pytest.fixture(scope="session", autouse=True)

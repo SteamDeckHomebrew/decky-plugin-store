@@ -3,9 +3,9 @@ from logging.config import fileConfig
 from os import getenv
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import pool
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.ext.asyncio import create_async_engine
 
 from database.models import Base
 
@@ -42,10 +42,8 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
-    url = url.format(DB_PATH=getenv("DB_PATH"))
     context.configure(
-        url=url,
+        url=f"sqlite+aiosqlite:///{getenv('DB_PATH')}",
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -69,16 +67,10 @@ async def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    config_section = config.get_section(config.config_ini_section)
-    assert config_section is not None
-    config_section["sqlalchemy.url"] = config_section["sqlalchemy.url"].format(DB_PATH=getenv("DB_PATH"))
-    connectable = AsyncEngine(
-        engine_from_config(  # type: ignore[arg-type]
-            config_section,
-            prefix="sqlalchemy.",
-            poolclass=pool.NullPool,
-            future=True,
-        ),
+    connectable = create_async_engine(
+        f"sqlite+aiosqlite:///{getenv('DB_PATH')}",
+        poolclass=pool.NullPool,
+        future=True,
     )
 
     async with connectable.connect() as connection:

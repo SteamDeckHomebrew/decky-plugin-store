@@ -4,18 +4,14 @@ services:
     build: .
     container_name: plugin_store
     environment:
-        - DB_PATH=/db/plugin_store_new.db
+        - DB_PATH=/app/.database/plugin_store_new.db
         - ANNOUNCEMENT_WEBHOOK
         - SUBMIT_AUTH_KEY=deadbeef
         - B2_APP_KEY_ID
         - B2_APP_KEY
         - B2_BUCKET_ID
     volumes:
-        - ./.database:/db
-        - ./plugin_store:/app
-        - ./tests:/tests
-        - ./alembic.ini:/alembic.ini
-        - ./pyproject.toml:/pyproject.toml
+        - .:/app
     restart: unless-stopped
     ports:
         - "5566:5566"

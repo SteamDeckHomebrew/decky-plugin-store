@@ -23,7 +23,7 @@ logger = logging.getLogger()
 
 
 async_engine = create_async_engine(
-    "sqlite+aiosqlite:///{}".format(getenv("DB_PATH")),
+    f"sqlite+aiosqlite:///{getenv('DB_PATH')}",
     pool_pre_ping=True,
     # echo=settings.ECHO_SQL,
 )

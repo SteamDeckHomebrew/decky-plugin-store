@@ -72,3 +72,9 @@ plugins = [
 #    "sqlmypy",
     "sqlalchemy.ext.mypy.plugin",
 ]
+
+[tool.pytest.ini_options]
+pythonpath = "/app/plugin_store"
+env = [
+    "DB_PATH=:memory:",
+]
