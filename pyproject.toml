@@ -77,4 +77,5 @@ plugins = [
 pythonpath = "/app/plugin_store"
 env = [
     "DB_PATH=:memory:",
+    "SUBMIT_AUTH_KEY=deadbeef",
 ]

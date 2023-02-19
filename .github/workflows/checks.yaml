@@ -1,0 +1,48 @@
+name: Checks
+
+on:
+  pull_request_target:
+    branches:
+      - "main"
+
+env:
+  # Use docker.io for Docker Hub if empty
+  REGISTRY: ghcr.io
+  # github.repository as <account>/<repo>
+  IMAGE_NAME: ${{ github.repository }}
+
+defaults:
+  run:
+    working-directory: "/app"
+
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yaml
+
+  lint:
+    runs-on: ubuntu-latest
+    needs:
+      - build
+    container:
+      image: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+    strategy:
+      matrix:
+        linter: [flake8, isort, black, mypy]
+    steps:
+      - run: "make lint/${{ matrix.linter }}"
+
+  test:
+    runs-on: ubuntu-latest
+    needs:
+      - lint
+    container:
+      image: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+    steps:
+      - run: "make test"
