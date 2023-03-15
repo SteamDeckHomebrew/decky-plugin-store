@@ -10,8 +10,8 @@ autoformat/isort:
 
 autoformat: autoformat/black autoformat/isort
 
-#lint/flake8:
-#	flake8 plugin_store/ tests/
+lint/flake8:
+	flake8 plugin_store/ tests/
 
 lint/isort:
 	isort --check --diff plugin_store/ tests/
@@ -19,13 +19,16 @@ lint/isort:
 lint/black:
 	black --check --diff plugin_store/ tests/
 
-lint: lint/black lint/isort
+lint/mypy:
+	PYTHON_PATH=/app/plugin_store mypy plugin_store/ tests/
+
+lint: lint/black lint/isort lint/flake8 lint/mypy
 
 dc/build:
 	docker-compose -f docker-compose.local.yml build
 
-#dc/%:
-#	docker-compose -f docker-compose.local.yml run -w / plugin_store make $*
+dc/%:
+	docker-compose -f docker-compose.local.yml run -w /app plugin_store make $*
 
 deps/lock:
 	poetry lock --no-update

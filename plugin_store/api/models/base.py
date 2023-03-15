@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 from pydantic.utils import ROOT_KEY
 
 if TYPE_CHECKING:
-    from typing import Any, Union
+    from typing import Any
 
     from pydantic.typing import DictStrAny
 
@@ -53,9 +53,10 @@ class PluginTagResponse(BaseModel):
 
         return super()._enforce_dict_if_root(obj)
 
-    def dict(self, **kwargs) -> "Union[DictStrAny, str]":
+    def dict(self, **kwargs) -> "DictStrAny":
         if self.__custom_root_type__:
-            data = super().dict(**{**kwargs, "by_alias": False})
+            kwargs["by_alias"] = False
+            data = super().dict(**kwargs)
             return data[ROOT_KEY]
         return super().dict(**kwargs)
 
@@ -69,8 +70,8 @@ class BasePluginResponseWithoutVisibility(PluginWithoutVisibility):
     class Config:
         orm_mode = True
 
-    tags: list[PluginTagResponse]
-    versions: list[PluginVersionResponse]
+    tags: list[PluginTagResponse]  # type: ignore[assignment]
+    versions: list[PluginVersionResponse]  # type: ignore[assignment]
 
     @classmethod
     def from_orm(cls, *args, **kwargs):
@@ -81,5 +82,5 @@ class BasePluginResponse(Plugin):
     class Config:
         orm_mode = True
 
-    tags: list[PluginTagResponse]
-    versions: list[PluginVersionResponse]
+    tags: list[PluginTagResponse]  # type: ignore[assignment]
+    versions: list[PluginVersionResponse]  # type: ignore[assignment]

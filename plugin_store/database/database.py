@@ -17,13 +17,13 @@ from .models.Artifact import Artifact, PluginTag, Tag
 from .models.Version import Version
 
 if TYPE_CHECKING:
-    from typing import AsyncIterator, Iterable, Optional
+    from typing import AsyncIterator, Iterable
 
 logger = logging.getLogger()
 
 
 async_engine = create_async_engine(
-    "sqlite+aiosqlite:///{}".format(getenv("DB_PATH")),
+    f"sqlite+aiosqlite:///{getenv('DB_PATH')}",
     pool_pre_ping=True,
     # echo=settings.ECHO_SQL,
 )
@@ -34,7 +34,7 @@ AsyncSessionLocal = sessionmaker(
 db_lock = Lock()
 
 
-async def get_session() -> "AsyncIterator[sessionmaker]":
+async def get_session() -> "AsyncIterator[AsyncSession]":
     try:
         yield AsyncSessionLocal()
     except SQLAlchemyError as e:
@@ -45,7 +45,7 @@ async def database(session: "AsyncSession" = Depends(get_session)) -> "AsyncIter
     db = Database(session, db_lock)
     try:
         yield db
-    except:
+    except Exception:
         await session.rollback()
         raise
     else:
@@ -72,7 +72,7 @@ class Database:
                     tag = Tag(tag=tag_name)
                     session.add(tag)
                     tags.append(tag)
-        except:
+        except Exception:
             raise
         return tags
 
@@ -84,19 +84,20 @@ class Database:
         author: "str",
         description: "str",
         tags: "list[str]",
-        id: "Optional[int]" = None,
+        id: "int | None" = None,
         visible: "bool" = True,
     ) -> "Artifact":
         nested = await session.begin_nested()
         async with self.lock:
-            tags = await self.prepare_tags(session, tags)
-            plugin = Artifact(name=name, author=author, description=description, tags=tags, visible=visible)
+            tag_objs = await self.prepare_tags(session, tags)
+            plugin = Artifact(name=name, author=author, description=description, tags=tag_objs, visible=visible)
             if id is not None:
                 plugin.id = id
             try:
                 session.add(plugin)
-            except:
+            except Exception:
                 await nested.rollback()
+                raise
             await session.commit()
             return await self.get_plugin_by_id(session, plugin.id)
 
@@ -111,7 +112,7 @@ class Database:
                 plugin.tags = await self.prepare_tags(session, kwargs["tags"])
             try:
                 session.add(plugin)
-            except:
+            except Exception:
                 await nested.rollback()
                 raise
             await session.commit()
@@ -127,8 +128,8 @@ class Database:
     async def search(
         self,
         session: "AsyncSession",
-        name: "str" = None,
-        tags: "Iterable[str]" = None,
+        name: "str | None" = None,
+        tags: "Iterable[str] | None" = None,
         include_hidden: "bool" = False,
         limit: int = 50,
         page: int = 0,
@@ -144,19 +145,16 @@ class Database:
         result = (await session.execute(statement)).scalars().all()
         return result or []
 
-    async def get_plugin_by_name(self, session: "AsyncSession", name: str) -> "Optional[Artifact]":
+    async def get_plugin_by_name(self, session: "AsyncSession", name: str) -> "Artifact | None":
         statement = select(Artifact).where(Artifact.name == name)
         try:
             return (await session.execute(statement)).scalars().first()
         except NoResultFound:
             return None
 
-    async def get_plugin_by_id(self, session: "AsyncSession", id: int) -> "Optional[Artifact]":
+    async def get_plugin_by_id(self, session: "AsyncSession", id: int) -> "Artifact":
         statement = select(Artifact).where(Artifact.id == id)
-        try:
-            return (await session.execute(statement)).scalars().first()
-        except NoResultFound:
-            return None
+        return (await session.execute(statement)).scalars().one()
 
     async def delete_plugin(self, session: "AsyncSession", id: int):
         await session.execute(delete(PluginTag).where(PluginTag.c.artifact_id == id))

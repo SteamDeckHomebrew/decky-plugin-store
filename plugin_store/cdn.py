@@ -10,8 +10,6 @@ from database.models import Artifact
 if TYPE_CHECKING:
     from fastapi import UploadFile
 
-    from database.models import Version
-
 
 async def b2_upload(filename: str, binary: "bytes"):
     async with ClientSession(raise_for_status=True) as web:
@@ -22,30 +20,30 @@ async def b2_upload(filename: str, binary: "bytes"):
         ) as res:
             if not res.status == 200:
                 return print("B2 LOGIN ERROR ", await res.read())
-            res = await res.json()
+            res_data = await res.json()
 
             async with web.post(
-                f"{res['apiUrl']}/b2api/v2/b2_get_upload_url",
+                f"{res_data['apiUrl']}/b2api/v2/b2_get_upload_url",
                 json={"bucketId": getenv("B2_BUCKET_ID")},
-                headers={"Authorization": res["authorizationToken"]},
-            ) as res:
-                if not res.status == 200:
-                    res.raise_for_status()
-                    return print("B2 GET_UPLOAD_URL ERROR ", await res.read())
-                res = await res.json()
+                headers={"Authorization": res_data["authorizationToken"]},
+            ) as res_data:
+                if not res_data.status == 200:
+                    res_data.raise_for_status()
+                    return print("B2 GET_UPLOAD_URL ERROR ", await res_data.read())
+                res_data = await res_data.json()
 
-                res = await web.post(
-                    res["uploadUrl"],
+                res_data = await web.post(
+                    res_data["uploadUrl"],
                     data=binary,
                     headers={
-                        "Authorization": res["authorizationToken"],
+                        "Authorization": res_data["authorizationToken"],
                         "Content-Type": "b2/x-auto",
                         "Content-Length": str(len(binary)),
                         "X-Bz-Content-Sha1": sha1(binary).hexdigest(),
                         "X-Bz-File-Name": filename,
                     },
                 )
-                return await res.text()
+                return await res_data.text()
 
 
 async def upload_image(plugin: "Artifact", image_url: "str"):

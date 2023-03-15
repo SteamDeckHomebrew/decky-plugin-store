@@ -1,4 +1,5 @@
-from typing import Any, Callable, Optional
+import inspect
+from typing import Any
 
 from fastapi import File, Form, UploadFile
 from fastapi.params import Depends
@@ -8,7 +9,9 @@ def form_body(cls):
     cls.__signature__ = cls.__signature__.replace(
         parameters=[
             arg.replace(
-                default=File(default=arg.default) if arg.annotation == UploadFile else Form(default=arg.default),
+                default=(File if arg.annotation == UploadFile else Form)(
+                    **{} if arg.default is inspect._empty else {"default": arg.default},
+                ),
             )
             for arg in cls.__signature__.parameters.values()
         ]

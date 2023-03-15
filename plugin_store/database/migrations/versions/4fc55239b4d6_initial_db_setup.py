@@ -1,7 +1,7 @@
 """initial db setup
 
 Revision ID: 4fc55239b4d6
-Revises: 
+Revises: None
 Create Date: 2022-11-07 01:36:59.727609
 
 """

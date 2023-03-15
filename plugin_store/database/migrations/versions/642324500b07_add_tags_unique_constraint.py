@@ -43,10 +43,10 @@ def upgrade() -> None:
 
         # Remove all relations matching src_ids (ignore things fetched above)
 
-    with op.batch_alter_table(Tag.__table__) as batch_op:
-        batch_op.create_unique_constraint("unique_tag_tag", ["tag"])
+    with op.batch_alter_table(Tag.__table__) as batch_op:  # type: ignore[arg-type]
+        batch_op.create_unique_constraint("unique_tag_tag", ["tag"])  # type: ignore[attr-defined]
 
 
 def downgrade() -> None:
-    with op.batch_alter_table(Tag.__table__) as batch_op:
-        batch_op.drop_constraint("unique_tag_tag", type_="unique")
+    with op.batch_alter_table(Tag.__table__) as batch_op:  # type: ignore[arg-type]
+        batch_op.drop_constraint("unique_tag_tag", type_="unique")  # type: ignore[attr-defined]

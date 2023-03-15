@@ -1,15 +1,14 @@
 from functools import reduce
-from hashlib import sha256
 from operator import add
 from os import getenv
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 import fastapi
 from fastapi import Depends, FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, JSONResponse, Response
+from fastapi.security import APIKeyHeader
 from fastapi.utils import is_body_allowed_for_status_code
-from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import JSONResponse, Response
 
 from cdn import upload_image, upload_version
 from constants import TEMPLATES_DIR
@@ -56,7 +55,7 @@ async def http_exception_handler(request: "Request", exc: "HTTPException") -> "R
     )
 
 
-async def auth_token(authorization: str = fastapi.Header(default="")) -> None:
+async def auth_token(authorization: str = Depends(APIKeyHeader(name="Authorization"))) -> None:
     if authorization != getenv("SUBMIT_AUTH_KEY"):
         raise fastapi.HTTPException(status_code=fastapi.status.HTTP_403_FORBIDDEN, detail="INVALID AUTH KEY")
 
@@ -68,7 +67,7 @@ async def index():
 
 @app.get(
     "/plugins",
-    response_model=list[Union[api_list.ListPluginResponse, api_list.ListPluginResponseWithoutVisibility]],
+    response_model=list[api_list.ListPluginResponse | api_list.ListPluginResponseWithoutVisibility],
 )
 async def plugins_list(
     query: str = "",
@@ -76,7 +75,7 @@ async def plugins_list(
     hidden: bool = False,
     db: "Database" = Depends(database),
 ):
-    tags = filter(None, reduce(add, (el.split(",") for el in tags), []))
+    tags = list(filter(None, reduce(add, (el.split(",") for el in tags), [])))
     plugins = await db.search(db.session, query, tags, hidden)
     return (plugin.to_dict(with_visibility=hidden) for plugin in plugins)
 
