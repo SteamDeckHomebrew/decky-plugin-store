@@ -1,5 +1,6 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, Text
+from sqlalchemy import Column, ForeignKey, Integer, Text
 
+from ..utils import TZDateTime
 from .Base import Base
 
 
@@ -10,10 +11,4 @@ class Version(Base):
     artifact_id = Column(Integer, ForeignKey("artifacts.id"))
     name = Column(Text)
     hash = Column(Text)
-    added_on = Column(DateTime)
-
-    def to_dict(self):
-        return {
-            "name": self.name,
-            "hash": self.hash,
-        }
+    created = Column("added_on", TZDateTime)

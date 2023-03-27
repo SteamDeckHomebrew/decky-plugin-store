@@ -1,6 +1,9 @@
+from datetime import datetime
 from typing import TYPE_CHECKING
+from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel as PydanticBaseModel
+from pydantic import Field
 from pydantic.utils import ROOT_KEY
 
 if TYPE_CHECKING:
@@ -8,34 +11,39 @@ if TYPE_CHECKING:
 
     from pydantic.typing import DictStrAny
 
+UTC = ZoneInfo("UTC")
+
+
+def datetime_iso_8601(dt: datetime) -> str:
+    if dt.tzinfo and dt.tzinfo == UTC:
+        return f"{dt:%Y-%m-%dT%H:%M:%SZ}"
+    else:
+        return dt.isoformat()
+
+
+class BaseModel(PydanticBaseModel):
+    class Config:
+        json_encoders = {
+            datetime: datetime_iso_8601,
+        }
+
 
 class PluginVersion(BaseModel):
     name: str
     hash: str
 
 
-class PluginWithoutImageAndVisibility(BaseModel):
+class BasePlugin(BaseModel):
     id: int
     name: str
     author: str
     description: str
     tags: list[str]
     versions: list[PluginVersion]
-
-
-class PluginWithoutImage(PluginWithoutImageAndVisibility):
     visible: bool
 
 
-class PluginWithoutVisibility(PluginWithoutImageAndVisibility):
-    image_url: str
-
-
-class Plugin(PluginWithoutVisibility):
-    visible: bool
-
-
-class BasePluginRequest(PluginWithoutImage):
+class BasePluginRequest(BasePlugin):
     pass
 
 
@@ -65,22 +73,16 @@ class PluginVersionResponse(PluginVersion):
     class Config:
         orm_mode = True
 
+    created: datetime
 
-class BasePluginResponseWithoutVisibility(PluginWithoutVisibility):
+
+class BasePluginResponse(BasePlugin):
     class Config:
         orm_mode = True
 
     tags: list[PluginTagResponse]  # type: ignore[assignment]
     versions: list[PluginVersionResponse]  # type: ignore[assignment]
 
-    @classmethod
-    def from_orm(cls, *args, **kwargs):
-        return super().from_orm(*args, **kwargs)
-
-
-class BasePluginResponse(Plugin):
-    class Config:
-        orm_mode = True
-
-    tags: list[PluginTagResponse]  # type: ignore[assignment]
-    versions: list[PluginVersionResponse]  # type: ignore[assignment]
+    image_url: str
+    created: datetime
+    updated: datetime

@@ -1,15 +1,13 @@
-from typing import TYPE_CHECKING
+from datetime import datetime
 from urllib.parse import quote
 
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, Table, Text, UniqueConstraint
-from sqlalchemy.orm import relationship
+from sqlalchemy import Boolean, Column, ForeignKey, func, Integer, select, Table, Text, UniqueConstraint
+from sqlalchemy.orm import column_property, relationship
 
 import constants
 
 from .Base import Base
-
-if TYPE_CHECKING:
-    from .Version import Version
+from .Version import Version
 
 
 class Tag(Base):
@@ -39,9 +37,16 @@ class Artifact(Base):
         "Tag", secondary=PluginTag, cascade="all, delete", order_by="Tag.tag", lazy="selectin"
     )
     versions: "list[Version]" = relationship(
-        "Version", cascade="all, delete", lazy="selectin", order_by="Version.added_on.desc()"
+        "Version", cascade="all, delete", lazy="selectin", order_by="Version.created.desc()"
     )
     visible: bool = Column(Boolean, default=True)
+
+    created: datetime = column_property(
+        select(func.min(Version.created)).where(Version.artifact_id == id).correlate_except(Version).scalar_subquery()
+    )
+    updated: datetime = column_property(
+        select(func.max(Version.created)).where(Version.artifact_id == id).correlate_except(Version).scalar_subquery()
+    )
 
     UniqueConstraint("name")
 
@@ -52,18 +57,3 @@ class Artifact(Base):
     @property
     def image_path(self):
         return f"artifact_images/{quote(self.name)}.png"
-
-    def to_dict(self, with_visibility: bool = False):
-        result = {
-            "id": self.id,
-            "name": self.name,
-            "author": self.author,
-            "description": self.description,
-            "image_url": self.image_url,
-            "tags": [i.tag for i in self.tags],
-            "versions": [i.to_dict() for i in self.versions],
-        }
-        if with_visibility:
-            result["visible"] = self.visible
-
-        return result

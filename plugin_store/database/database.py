@@ -3,6 +3,7 @@ from asyncio import Lock
 from datetime import datetime
 from os import getenv
 from typing import TYPE_CHECKING
+from zoneinfo import ZoneInfo
 
 from alembic import command
 from alembic.config import Config
@@ -20,6 +21,8 @@ if TYPE_CHECKING:
     from typing import AsyncIterator, Iterable
 
 logger = logging.getLogger()
+
+UTC = ZoneInfo("UTC")
 
 
 async_engine = create_async_engine(
@@ -118,8 +121,15 @@ class Database:
             await session.commit()
         return await self.get_plugin_by_id(session, plugin.id)
 
-    async def insert_version(self, session: "AsyncSession", artifact_id: int, **kwargs) -> "Version":
-        version = Version(artifact_id=artifact_id, name=kwargs["name"], hash=kwargs["hash"], added_on=datetime.now())
+    async def insert_version(
+        self,
+        session: "AsyncSession",
+        artifact_id: int,
+        name: str,
+        hash: str,
+        created: "datetime | None" = None,
+    ) -> "Version":
+        version = Version(artifact_id=artifact_id, name=name, hash=hash, created=created or datetime.now(UTC))
         async with self.lock:
             session.add(version)
             await session.commit()

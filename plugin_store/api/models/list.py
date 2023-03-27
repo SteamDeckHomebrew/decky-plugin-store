@@ -1,9 +1,5 @@
-from api.models.base import Plugin, PluginWithoutVisibility
+from api.models.base import BasePluginResponse
 
 
-class ListPluginResponseWithoutVisibility(PluginWithoutVisibility):
-    pass
-
-
-class ListPluginResponse(Plugin):
+class ListPluginResponse(BasePluginResponse):
     pass
