@@ -25,7 +25,7 @@ jobs:
     needs:
       - build
     container:
-      image: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
+      image: ${{ needs.build.outputs.image }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.github_token }}
@@ -38,9 +38,10 @@ jobs:
   test:
     runs-on: ubuntu-latest
     needs:
+      - build
       - lint
     container:
-      image: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
+      image: ${{ needs.build.outputs.image }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.github_token }}

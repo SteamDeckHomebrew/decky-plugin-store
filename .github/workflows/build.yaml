@@ -1,5 +1,9 @@
 on:
   workflow_call:
+    outputs:
+      image:
+        description: "Resulting docker image (tagged with commit SHA)"
+        value: ${{ jobs.set_image_name.outputs.image }}
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -55,3 +59,15 @@ jobs:
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+
+  set_image_name:
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.set.outputs.image }}
+    steps:
+      - name: Set output
+        id: set
+        shell: bash
+        run: |
+          name="ghcr.io/${{ github.repository }}:sha-${{ github.sha }}"
+          echo "image=${name,,}" >> $GITHUB_OUTPUT
