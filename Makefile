@@ -24,6 +24,15 @@ lint/mypy:
 
 lint: lint/black lint/isort lint/flake8 lint/mypy
 
+migrations/apply:
+	alembic upgrade head
+
+migrations/autogenerate:
+	alembic revision --autogenerate
+
+migrations/create:
+	alembic revision
+
 dc/build:
 	docker-compose -f docker-compose.local.yml build
 
