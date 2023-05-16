@@ -6,6 +6,7 @@ from fastapi.params import Depends
 
 
 def form_body(cls):
+    # noinspection PyProtectedMember
     cls.__signature__ = cls.__signature__.replace(
         parameters=[
             arg.replace(
@@ -24,5 +25,6 @@ class FormBodyCls(Depends):
         super().__init__(form_body(model) if model else None, use_cache=use_cache)
 
 
+# noinspection PyPep8Naming
 def FormBody(model: Any = None, *, use_cache: bool = True) -> Any:
     return FormBodyCls(model=model, use_cache=use_cache)

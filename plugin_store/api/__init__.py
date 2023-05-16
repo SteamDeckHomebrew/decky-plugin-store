@@ -1,7 +1,7 @@
 from functools import reduce
 from operator import add
 from os import getenv
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 import fastapi
 from fastapi import Depends, FastAPI, HTTPException
@@ -67,7 +67,7 @@ async def index():
 
 @app.get(
     "/plugins",
-    response_model=list[api_list.ListPluginResponse | api_list.ListPluginResponseWithoutVisibility],
+    response_model=list[Union[api_list.ListPluginResponse, api_list.ListPluginResponseWithoutVisibility]],
 )
 async def plugins_list(
     query: str = "",

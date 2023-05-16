@@ -10,6 +10,8 @@ from sqlalchemy.exc import NoResultFound
 from database.models.Artifact import Tag
 
 if TYPE_CHECKING:
+    from typing import Union
+
     from httpx import AsyncClient
 
     from database.database import Database
@@ -90,7 +92,7 @@ async def test_plugins_list_endpoint(
     show_visibility: bool,
 ):
     plugin_ids = query_plugin_ids & tag_plugin_ids & hidden_plugin_ids
-    params: dict[str, str | bool] = {}
+    params: "dict[str, Union[str | bool]]" = {}
     if query_filter is not None:
         params["query"] = query_filter
     if tags_filter is not None:
