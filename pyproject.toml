@@ -11,12 +11,12 @@ readme = "README.md"
 packages = [{include = "decky_plugin_store"}]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.9"
 aiohttp = "^3.8.1"
 alembic = "^1.8.1"
 aiosqlite = "^0.17.0"  # for async sqlite in sqlalchemy
 asgiref = "^3.5.2"
-discord-webhook = {version = "^1.0.0", extras = ["async"]}
+discord-webhook = {version = "^0.17.0", extras = ["async"]}
 fastapi = "^0.85.1"
 python-multipart = "^0.0.5"  # for multipart forms in fastapi
 sqlalchemy = "^1.4.41"
@@ -72,6 +72,10 @@ plugins = [
 #    "sqlmypy",
     "sqlalchemy.ext.mypy.plugin",
 ]
+
+[[tool.mypy.overrides]]
+module = "discord_webhook"
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 pythonpath = "/app/plugin_store"
