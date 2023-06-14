@@ -16,7 +16,6 @@ async def post_announcement(plugin: "Artifact", version: "Version"):
     embed.set_author(
         name=plugin.author,
         icon_url=f"{constants.CDN_URL}SDHomeBrewwwww.png",
-        url=f"https://github.com/{plugin.author}/{plugin.name}",
     )
     embed.set_thumbnail(url=plugin.image_url)
     embed.set_footer(text=f"Version {version.name}")
