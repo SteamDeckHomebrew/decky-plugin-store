@@ -1,7 +1,7 @@
 from fastapi import UploadFile
 from pydantic import BaseModel, HttpUrl
 
-from api.models.base import BasePluginResponseWithoutVisibility
+from api.models.base import BasePluginResponse
 
 
 class SubmitProductRequest(BaseModel):
@@ -15,5 +15,5 @@ class SubmitProductRequest(BaseModel):
     force: bool = False
 
 
-class SubmitProductResponse(BasePluginResponseWithoutVisibility):
+class SubmitProductResponse(BasePluginResponse):
     pass

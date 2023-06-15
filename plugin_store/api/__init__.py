@@ -1,7 +1,7 @@
 from functools import reduce
 from operator import add
 from os import getenv
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 import fastapi
 from fastapi import Depends, FastAPI, HTTPException
@@ -65,10 +65,7 @@ async def index():
     return INDEX_PAGE
 
 
-@app.get(
-    "/plugins",
-    response_model=list[Union[api_list.ListPluginResponse, api_list.ListPluginResponseWithoutVisibility]],
-)
+@app.get("/plugins", response_model=list[api_list.ListPluginResponse])
 async def plugins_list(
     query: str = "",
     tags: list[str] = fastapi.Query(default=[]),
@@ -77,7 +74,7 @@ async def plugins_list(
 ):
     tags = list(filter(None, reduce(add, (el.split(",") for el in tags), [])))
     plugins = await db.search(db.session, query, tags, hidden)
-    return (plugin.to_dict(with_visibility=hidden) for plugin in plugins)
+    return plugins
 
 
 @app.post("/__auth", response_model=str, dependencies=[Depends(auth_token)])
@@ -131,11 +128,19 @@ async def submit_release(
 
 @app.post("/__update", dependencies=[Depends(auth_token)], response_model=api_update.UpdatePluginResponse)
 async def update_plugin(data: "api_update.UpdatePluginRequest", db: "Database" = Depends(database)):
+    version_dates = {
+        version.name: version.created for version in (await db.get_plugin_by_id(db.session, data.id)).versions
+    }
     await db.delete_plugin(db.session, data.id)
     new_plugin = await db.insert_artifact(db.session, **data.dict(exclude={"versions"}))
 
     for version in reversed(data.versions):
-        await db.insert_version(db.session, artifact_id=new_plugin.id, **version.dict())
+        await db.insert_version(
+            db.session,
+            artifact_id=new_plugin.id,
+            created=version_dates.get(version.name),
+            **version.dict(),
+        )
     await db.session.refresh(new_plugin)
     return new_plugin
 
