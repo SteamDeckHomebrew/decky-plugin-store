@@ -37,7 +37,7 @@ class Artifact(Base):
         "Tag", secondary=PluginTag, cascade="all, delete", order_by="Tag.tag", lazy="selectin"
     )
     versions: "list[Version]" = relationship(
-        "Version", cascade="all, delete", lazy="selectin", order_by="Version.created.desc()"
+        "Version", cascade="all, delete", lazy="selectin", order_by="Version.created.desc(), Version.id.asc()"
     )
     visible: bool = Column(Boolean, default=True)
 
