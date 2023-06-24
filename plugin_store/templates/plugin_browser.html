@@ -47,18 +47,6 @@
                 <span v-for="tag in plugin.tags" class="badge alert-primary" style="margin-right: 5px;">{{ tag }}</span>
               </p>
               <p class="card-text">{{ plugin.description }}</p>
-              <div class="btn-group">
-                <button type="button" class="btn btn-primary"
-                  v-on:click="installPlugin(plugin.name, plugin.selected_version)">Install {{
-                  plugin.selected_version.name }}</button>
-                <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split"
-                  data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                </button>
-                <div class="dropdown-menu">
-                  <a v-for="version in plugin.versions" class="dropdown-item"
-                    v-on:click="plugin.selected_version = version">{{ version.name }}</a>
-                </div>
-              </div>
             </div>
           </div>
         </div>
