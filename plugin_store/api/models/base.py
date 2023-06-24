@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel as PydanticBaseModel
@@ -84,5 +84,5 @@ class BasePluginResponse(BasePlugin):
     versions: list[PluginVersionResponse]  # type: ignore[assignment]
 
     image_url: str
-    created: datetime
-    updated: datetime
+    created: Optional[datetime]
+    updated: Optional[datetime]
