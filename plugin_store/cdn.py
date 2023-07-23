@@ -2,16 +2,27 @@ from base64 import b64encode
 from hashlib import sha1, sha256
 from os import getenv
 from typing import TYPE_CHECKING
+from urllib.parse import quote
 
 from aiohttp import ClientSession
-
-from database.models import Artifact
 
 if TYPE_CHECKING:
     from fastapi import UploadFile
 
 
-async def b2_upload(filename: str, binary: "bytes"):
+IMAGE_TYPES = {
+    "image/png": ".png",
+    "image/jpeg": ".jpg",
+    "image/webp": ".webp",
+    "image/avif": ".avif",
+}
+
+
+def construct_image_path(plugin_name: str, file_hash: str, mime_type: str) -> str:
+    return f"artifact_images/{quote(plugin_name)}-{file_hash}{IMAGE_TYPES[mime_type]}"
+
+
+async def b2_upload(filename: str, binary: "bytes", mime_type: str = "b2/x-auto"):
     async with ClientSession(raise_for_status=True) as web:
         auth_str = f"{getenv('B2_APP_KEY_ID')}:{getenv('B2_APP_KEY')}".encode("utf-8")
         async with web.get(
@@ -37,7 +48,7 @@ async def b2_upload(filename: str, binary: "bytes"):
                     data=binary,
                     headers={
                         "Authorization": res_data["authorizationToken"],
-                        "Content-Type": "b2/x-auto",
+                        "Content-Type": mime_type,
                         "Content-Length": str(len(binary)),
                         "X-Bz-Content-Sha1": sha1(binary).hexdigest(),
                         "X-Bz-File-Name": filename,
@@ -46,11 +57,23 @@ async def b2_upload(filename: str, binary: "bytes"):
                 return await res_data.text()
 
 
-async def upload_image(plugin: "Artifact", image_url: "str"):
+async def fetch_image(image_url: str) -> "tuple[bytes, str] | None":
     async with ClientSession() as web:
         async with web.get(image_url) as res:
-            if res.status == 200 and res.headers.get("Content-Type") == "image/png":
-                await b2_upload(plugin.image_path, await res.read())
+            if res.status == 200 and (mime_type := res.headers.get("Content-Type")) in IMAGE_TYPES:
+                return await res.read(), mime_type
+    return None
+
+
+async def upload_image(plugin_name: str, image_url: str) -> "str | None":
+    fetched = await fetch_image(image_url)
+    if fetched is not None:
+        binary, mime_type = fetched
+        file_hash = sha256(binary).hexdigest()
+        file_path = construct_image_path(plugin_name, file_hash, mime_type)
+        await b2_upload(file_path, binary)
+        return file_path
+    return None
 
 
 async def upload_version(file: "UploadFile"):

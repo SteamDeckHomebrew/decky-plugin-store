@@ -87,13 +87,21 @@ class Database:
         author: "str",
         description: "str",
         tags: "list[str]",
+        image_path: "str | None" = None,
         id: "int | None" = None,
         visible: "bool" = True,
     ) -> "Artifact":
         nested = await session.begin_nested()
         async with self.lock:
             tag_objs = await self.prepare_tags(session, tags)
-            plugin = Artifact(name=name, author=author, description=description, tags=tag_objs, visible=visible)
+            plugin = Artifact(
+                name=name,
+                author=author,
+                description=description,
+                _image_path=image_path,
+                tags=tag_objs,
+                visible=visible,
+            )
             if id is not None:
                 plugin.id = id
             try:
@@ -111,6 +119,8 @@ class Database:
                 plugin.author = kwargs["author"]
             if "description" in kwargs:
                 plugin.description = kwargs["description"]
+            if "image_path" in kwargs:
+                plugin._image_path = kwargs["image_path"]
             if "tags" in kwargs:
                 plugin.tags = await self.prepare_tags(session, kwargs["tags"])
             try:

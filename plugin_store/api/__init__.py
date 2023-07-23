@@ -98,6 +98,8 @@ async def submit_release(
         await db.delete_plugin(db.session, plugin.id)
         plugin = None
 
+    image_path = await upload_image(data.name, data.image)
+
     if plugin is not None:
         if data.version_name in [i.name for i in plugin.versions]:
             raise HTTPException(status_code=400, detail="Version already exists")
@@ -106,6 +108,7 @@ async def submit_release(
             plugin,
             author=data.author,
             description=data.description,
+            image_path=image_path,
             tags=list(filter(None, reduce(add, (el.split(",") for el in data.tags), []))),
         )
     else:
@@ -114,25 +117,27 @@ async def submit_release(
             name=data.name,
             author=data.author,
             description=data.description,
+            image_path=image_path,
             tags=list(filter(None, reduce(add, (el.split(",") for el in data.tags), []))),
         )
 
     version = await db.insert_version(db.session, plugin.id, name=data.version_name, **await upload_version(data.file))
 
     await db.session.refresh(plugin)
-
-    await upload_image(plugin, data.image)
     await post_announcement(plugin, version)
     return plugin
 
 
 @app.post("/__update", dependencies=[Depends(auth_token)], response_model=api_update.UpdatePluginResponse)
 async def update_plugin(data: "api_update.UpdatePluginRequest", db: "Database" = Depends(database)):
-    version_dates = {
-        version.name: version.created for version in (await db.get_plugin_by_id(db.session, data.id)).versions
-    }
+    old_plugin = await db.get_plugin_by_id(db.session, data.id)
+    version_dates = {version.name: version.created for version in old_plugin.versions}
     await db.delete_plugin(db.session, data.id)
-    new_plugin = await db.insert_artifact(db.session, **data.dict(exclude={"versions"}))
+    new_plugin = await db.insert_artifact(
+        db.session,
+        image_path=old_plugin._image_path,
+        **data.dict(exclude={"versions"}),
+    )
 
     for version in reversed(data.versions):
         await db.insert_version(

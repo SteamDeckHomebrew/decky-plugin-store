@@ -62,9 +62,9 @@ async def test_plugin_list_endpoint_cors(
     ("tags_filter", "tag_plugin_ids"),
     [
         pytest.param(None, {1, 2, 3, 4, 5, 6, 7, 8}, id="no-tags"),
-        pytest.param("tag-2", {1, 3, 5, 7}, id="tags-tag-2"),
+        pytest.param("tag-2", {1, 2, 3, 5, 6, 7}, id="tags-tag-2"),
         pytest.param("", {1, 2, 3, 4, 5, 6, 7, 8}, id="tags-empty"),
-        pytest.param("tag-1,tag-3", {2, 6}, id="tags-tag-1-tag-3"),
+        pytest.param("tag-1,tag-3", {4, 8}, id="tags-tag-1-tag-3"),
     ],
 )
 @pytest.mark.parametrize(
@@ -134,8 +134,8 @@ async def test_plugins_list_endpoint(
             "name": "plugin-2",
             "author": "author-of-plugin-2",
             "description": "Description of plugin-2",
-            "tags": ["tag-1", "tag-3"],
-            "image_url": "hxxp://fake.domain/artifact_images/plugin-2.png",
+            "tags": ["tag-2"],
+            "image_url": "hxxp://fake.domain/2.png",
             "created": "2022-02-25T00:01:00Z",
             "updated": "2022-02-25T00:01:01Z",
             "versions": [
@@ -185,7 +185,7 @@ async def test_plugins_list_endpoint(
             "name": "plugin-4",
             "author": "author-of-plugin-4",
             "description": "Description of plugin-4",
-            "tags": ["tag-1"],
+            "tags": ["tag-1", "tag-3"],
             "image_url": "hxxp://fake.domain/artifact_images/plugin-4.png",
             "created": "2022-02-25T00:03:00Z",
             "updated": "2022-02-25T00:03:03Z",
@@ -246,8 +246,8 @@ async def test_plugins_list_endpoint(
             "name": "plugin-6",
             "author": "author-of-plugin-6",
             "description": "Description of plugin-6",
-            "tags": ["tag-1", "tag-3"],
-            "image_url": "hxxp://fake.domain/artifact_images/plugin-6.png",
+            "tags": ["tag-2"],
+            "image_url": "hxxp://fake.domain/6.png",
             "created": "2022-02-25T00:05:00Z",
             "updated": "2022-02-25T00:05:01Z",
             "versions": [
@@ -297,7 +297,7 @@ async def test_plugins_list_endpoint(
             "name": "plugin-8",
             "author": "author-of-plugin-8",
             "description": "Description of plugin-8",
-            "tags": ["tag-1"],
+            "tags": ["tag-1", "tag-3"],
             "image_url": "hxxp://fake.domain/artifact_images/plugin-8.png",
             "created": "2022-02-25T00:07:00Z",
             "updated": "2022-02-25T00:07:03Z",
@@ -482,7 +482,10 @@ async def test_submit_endpoint(
             "author": "plugin-author-of-new-plugin",
             "description": "Description of our brand new plugin!",
             "tags": ["new-tag-2", "tag-1"],
-            "image_url": f"hxxp://fake.domain/artifact_images/{name}.png",
+            "image_url": (
+                f"hxxp://fake.domain/artifact_images/"
+                f"{name}-c68fb83de3e223e8e79568427c4f4461ff8733bb63465f94330bb1fa7030d236.png"
+            ),
             "created": resulting_created_time,
             "updated": resulting_updated_time,
             "versions": resulting_versions,
@@ -496,6 +499,10 @@ async def test_submit_endpoint(
         assert plugin.name == name
         assert plugin.author == "plugin-author-of-new-plugin"
         assert plugin.description == "Description of our brand new plugin!"
+        assert (
+            plugin._image_path
+            == f"artifact_images/{name}-c68fb83de3e223e8e79568427c4f4461ff8733bb63465f94330bb1fa7030d236.png"
+        )
         assert len(plugin.tags) == 2
         assert plugin.tags[0].tag == "new-tag-2"
         assert plugin.tags[1].tag == "tag-1"
@@ -527,16 +534,8 @@ async def test_update_endpoint_requires_auth(client_unauth: "AsyncClient"):
 @pytest.mark.parametrize("make_visible", (True, False), ids=["make_visible", "make_hidden"])
 @pytest.mark.parametrize("pick_visible", (True, False), ids=["pick_visible", "pick_hidden"])
 @pytest.mark.parametrize(
-    ("with_versions", "override_versions"),
+    ("with_versions", "override_versions", "custom_image"),
     (
-        pytest.param(
-            [
-                {"name": "30.0.0", "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
-                {"name": "32.0.0", "hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
-            ],
-            True,
-            id="override_versions",
-        ),
         pytest.param(
             [
                 {"name": "0.1.0", "hash": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
@@ -544,7 +543,35 @@ async def test_update_endpoint_requires_auth(client_unauth: "AsyncClient"):
                 {"name": "1.0.0", "hash": "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"},
             ],
             False,
-            id="keep_versions",
+            False,
+            id="without_image-keep_versions",
+        ),
+        pytest.param(
+            [
+                {"name": "30.0.0", "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+                {"name": "32.0.0", "hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+            ],
+            True,
+            False,
+            id="without_image-override_versions",
+        ),
+        pytest.param(
+            [
+                {"name": "1.1.0", "hash": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+                {"name": "2.0.0", "hash": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"},
+            ],
+            False,
+            True,
+            id="with_image-keep_versions",
+        ),
+        pytest.param(
+            [
+                {"name": "30.0.0", "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+                {"name": "32.0.0", "hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+            ],
+            True,
+            True,
+            id="with_image-override_versions",
         ),
     ),
 )
@@ -553,24 +580,35 @@ async def test_update_endpoint(
     client_auth: "AsyncClient",
     seed_db: "Database",
     freezer: "FrozenDateTimeFactory",
+    custom_image: bool,
     pick_visible: bool,
     make_visible: bool,
     with_versions: list[dict],
     override_versions: bool,
 ):
+    plugin_id = {
+        (False, False): 5,
+        (False, True): 1,
+        (True, False): 6,
+        (True, True): 2,
+    }[custom_image, pick_visible]
+    image_path = f"{plugin_id}.png" if custom_image else "artifact_images/new-plugin-name.png"
     resulting_versions_dates = (
         ["2022-04-04T00:00:00Z", "2022-04-04T00:00:00Z"]
         if override_versions
-        else ["2022-02-25T00:00:02Z", "2022-02-25T00:00:01Z", "2022-02-25T00:00:00Z"]
-        if pick_visible
-        else ["2022-02-25T00:04:02Z", "2022-02-25T00:04:01Z", "2022-02-25T00:04:00Z"]
+        else {
+            (False, False): ["2022-02-25T00:04:02Z", "2022-02-25T00:04:01Z", "2022-02-25T00:04:00Z"],
+            (False, True): ["2022-02-25T00:00:02Z", "2022-02-25T00:00:01Z", "2022-02-25T00:00:00Z"],
+            (True, False): ["2022-02-25T00:05:01Z", "2022-02-25T00:05:00Z"],
+            (True, True): ["2022-02-25T00:01:01Z", "2022-02-25T00:01:00Z"],
+        }[custom_image, pick_visible]
     )
 
     freezer.move_to("2022-04-04T00:00:00Z")
     response = await client_auth.post(
         "/__update",
         json={
-            "id": 1 if pick_visible else 5,
+            "id": plugin_id,
             "name": "new-plugin-name",
             "author": "New Author",
             "description": "New description",
@@ -583,12 +621,12 @@ async def test_update_endpoint(
     assert response.status_code == status.HTTP_200_OK, response.json()
 
     assert (response.json()) == {
-        "id": 1 if pick_visible else 5,
+        "id": plugin_id,
         "name": "new-plugin-name",
         "author": "New Author",
         "description": "New description",
         "tags": ["new-tag-1", "tag-2"],
-        "image_url": "hxxp://fake.domain/artifact_images/new-plugin-name.png",
+        "image_url": f"hxxp://fake.domain/{image_path}",
         "created": min(resulting_versions_dates),
         "updated": max(resulting_versions_dates),
         "versions": [
@@ -597,13 +635,14 @@ async def test_update_endpoint(
         "visible": make_visible,
     }
 
-    plugin = await seed_db.get_plugin_by_id(seed_db.session, 1 if pick_visible else 5)
+    plugin = await seed_db.get_plugin_by_id(seed_db.session, plugin_id)
 
     assert plugin is not None
 
     assert plugin.name == "new-plugin-name"
     assert plugin.author == "New Author"
     assert plugin.description == "New description"
+    assert plugin._image_path == (image_path if custom_image else None)
     assert plugin.visible is make_visible
     assert len(plugin.tags) == 2
     assert plugin.tags[0].tag == "new-tag-1"
