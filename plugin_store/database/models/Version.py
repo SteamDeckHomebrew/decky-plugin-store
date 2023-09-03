@@ -1,6 +1,7 @@
 from sqlalchemy import Column, ForeignKey, Integer, Text, UniqueConstraint
 
 import constants
+
 from ..utils import TZDateTime
 from .Base import Base
 

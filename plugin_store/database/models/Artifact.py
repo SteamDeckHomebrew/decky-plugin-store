@@ -33,6 +33,7 @@ class Artifact(Base):
     name: str = Column(Text)
     author: str = Column(Text)
     description: str = Column(Text)
+    _image_path: "str | None" = Column("image_path", Text, nullable=True)
     tags: "list[Tag]" = relationship(
         "Tag", secondary=PluginTag, cascade="all, delete", order_by="Tag.tag", lazy="selectin"
     )
@@ -56,4 +57,6 @@ class Artifact(Base):
 
     @property
     def image_path(self):
+        if self._image_path is not None:
+            return self._image_path
         return f"artifact_images/{quote(self.name)}.png"

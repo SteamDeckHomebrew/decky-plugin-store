@@ -24,11 +24,17 @@ if TYPE_CHECKING:
     from freezegun.api import FrozenDateTimeFactory
 
 APP_PATH = Path("./plugin_store").absolute()
+TESTS_PATH = Path(__file__).expanduser().resolve().parent
+DUMMY_DATA_PATH = TESTS_PATH / "dummy_data"
 
 
 @pytest.fixture(scope="session", autouse=True)
 def mock_external_services(session_mocker: "MockFixture"):
     session_mocker.patch("cdn.b2_upload")
+    session_mocker.patch(
+        "cdn.fetch_image",
+        return_value=((DUMMY_DATA_PATH / "plugin-image.png").read_bytes(), "image/png"),
+    )
     session_mocker.patch("discord.AsyncDiscordWebhook", new=session_mocker.AsyncMock)
 
 
@@ -98,6 +104,7 @@ class FakePluginGenerator:
         name: "str | None" = None,
         author: "str | None" = None,
         description: "str | None" = None,
+        image: "str | None" = None,
         tags: "int | list[str] | None" = None,
         versions: "int | list[str] | list[dict] | None" = None,
         visible: bool = True,
@@ -122,6 +129,7 @@ class FakePluginGenerator:
             name=name,
             author=author,
             description=description,
+            image_path=image,
             tags=tags,
             visible=visible,
         )
@@ -149,20 +157,25 @@ async def seed_db(db: "Database", db_sessionmaker: "sessionmaker", freezer: "Fro
     freezer.move_to("2022-02-25T00:00:00Z")
     await generator.create("plugin-1", tags=["tag-1", "tag-2"], versions=["0.1.0", "0.2.0", "1.0.0"])
     freezer.move_to("2022-02-25T00:01:00Z")
-    await generator.create("plugin-2", tags=["tag-1", "tag-3"], versions=["1.1.0", "2.0.0"])
+    await generator.create("plugin-2", image="2.png", tags=["tag-2"], versions=["1.1.0", "2.0.0"])
     freezer.move_to("2022-02-25T00:02:00Z")
     await generator.create("third", tags=["tag-2", "tag-3"], versions=["3.0.0", "3.1.0", "3.2.0"])
     freezer.move_to("2022-02-25T00:03:00Z")
-    await generator.create("plugin-4", tags=["tag-1"], versions=["1.0.0", "2.0.0", "3.0.0", "4.0.0"])
+    await generator.create("plugin-4", tags=["tag-1", "tag-3"], versions=["1.0.0", "2.0.0", "3.0.0", "4.0.0"])
     freezer.move_to("2022-02-25T00:04:00Z")
     await generator.create("plugin-5", tags=["tag-1", "tag-2"], versions=["0.1.0", "0.2.0", "1.0.0"], visible=False)
     freezer.move_to("2022-02-25T00:05:00Z")
-    await generator.create("plugin-6", tags=["tag-1", "tag-3"], versions=["1.1.0", "2.0.0"], visible=False)
+    await generator.create("plugin-6", image="6.png", tags=["tag-2"], versions=["1.1.0", "2.0.0"], visible=False)
     freezer.move_to("2022-02-25T00:06:00Z")
     await generator.create("seventh", tags=["tag-2", "tag-3"], versions=["3.0.0", "3.1.0", "3.2.0"], visible=False)
     freezer.move_to("2022-02-25T00:07:00Z")
-    await generator.create("plugin-8", tags=["tag-1"], versions=["1.0.0", "2.0.0", "3.0.0", "4.0.0"], visible=False)
-    session.commit()
+    await generator.create(
+        "plugin-8",
+        tags=["tag-1", "tag-3"],
+        versions=["1.0.0", "2.0.0", "3.0.0", "4.0.0"],
+        visible=False,
+    )
+    # session.commit()
 
     return db
 
