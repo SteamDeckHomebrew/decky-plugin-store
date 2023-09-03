@@ -20,7 +20,7 @@ lint/black:
 	black --check --diff plugin_store/ tests/
 
 lint/mypy:
-	PYTHON_PATH=/app/plugin_store mypy plugin_store/ tests/
+	PYTHON_PATH=./plugin_store mypy plugin_store/ tests/
 
 lint: lint/black lint/isort lint/flake8 lint/mypy
 
