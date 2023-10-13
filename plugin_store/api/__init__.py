@@ -76,6 +76,12 @@ async def plugins_list(
     plugins = await db.search(db.session, query, tags, hidden)
     return plugins
 
+@app.post("/increment")
+async def submit_release(
+    data: "api_submit.SubmitIncrementRequest" = FormBody(api_submit.SubmitIncrementRequest),
+    db: "Database" = Depends(database),
+):
+    await db.increment_value(db.session, data.name, data.isUpdate)
 
 @app.post("/__auth", response_model=str, dependencies=[Depends(auth_token)])
 async def auth_check():
