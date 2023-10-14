@@ -1,7 +1,7 @@
 from functools import reduce
 from operator import add
 from os import getenv
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 from enum import auto
 
 import fastapi
@@ -67,27 +67,25 @@ async def index():
 
 
 # TODO: move these enums somewhere to deduplicate them
-class SortOption(StrEnum):
+class SortDirection(StrEnum):
     desc = auto()
     asc = auto()
-    NONE = auto()
 
 class SortType(StrEnum):
     name = auto()
     date = auto()
-    NONE = auto()
 
 @app.get("/plugins", response_model=list[api_list.ListPluginResponse])
 async def plugins_list(
     query: str = "",
     tags: list[str] = fastapi.Query(default=[]),
     hidden: bool = False,
-    sort_by: SortType = SortType.NONE,
-    order_by: SortOption = SortOption.NONE,
+    sort_by: Optional[SortType] = None,
+    sort_direction: SortDirection = SortDirection.desc,
     db: "Database" = Depends(database),
 ):
     tags = list(filter(None, reduce(add, (el.split(",") for el in tags), [])))
-    plugins = await db.search(db.session, query, tags, hidden, sort_by, order_by)
+    plugins = await db.search(db.session, query, tags, hidden, sort_by, sort_direction)
     return plugins
 
 

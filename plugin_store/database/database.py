@@ -2,7 +2,7 @@ import logging
 from asyncio import Lock
 from datetime import datetime
 from os import getenv
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 from zoneinfo import ZoneInfo
 
 from alembic import command
@@ -37,17 +37,18 @@ AsyncSessionLocal = sessionmaker(
 
 db_lock = Lock()
 
+from enum import Enum, auto
 # TODO: move these enums somewhere to deduplicate them
+# also note that these StrEnums are from the python library, but the other ones are from fastapi.
+# i'm not sure what to do about that to be honest...
 ####
-class SortOption(StrEnum):
+class SortDirection(StrEnum):
     desc = auto()
     asc = auto()
-    NONE = auto()
 
 class SortType(StrEnum):
     name = auto()
     date = auto()
-    NONE = auto()
 
 ####
 
@@ -166,8 +167,8 @@ class Database:
         name: "str | None" = None,
         tags: "Iterable[str] | None" = None,
         include_hidden: "bool" = False,
-        sort_by: SortType = SortType.NONE,
-        order_by: SortOption = SortOption.NONE,
+        sort_by: Optional[SortType] = None,
+        sort_direction: SortDirection = SortDirection.desc,
         limit: int = 50,
         page: int = 0,
     ) -> list["Artifact"]:
@@ -179,15 +180,12 @@ class Database:
                 statement = statement.filter(Artifact.tags.any(tag=tag))
         if not include_hidden:
             statement = statement.where(Artifact.visible.is_(True))
-        direction = desc()
-        match (order_by):
-            case SortOption.asc: direction = asc()
-            case SortOption.desc: direction = desc()
-            case SortOption.NONE: pass
-        match (sort_by):
-            case SortType.name: statement = statement.order_by(direction(Artifact.name))
-            case SortType.date: statement = statement.order_by(direction(Artifact.created))
-            case SortType.NONE: pass
+        
+        if sort_direction == SortDirection.asc: direction = asc()
+        else: direction = desc()
+        if sort_by == SortType.name: statement = statement.order_by(direction(Artifact.name))
+        if sort_by == SortType.date: statement = statement.order_by(direction(Artifact.created))
+
         result = (await session.execute(statement)).scalars().all()
         return result or []
 
