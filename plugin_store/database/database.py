@@ -38,6 +38,7 @@ AsyncSessionLocal = sessionmaker(
 
 db_lock = Lock()
 
+
 async def get_session() -> "AsyncIterator[AsyncSession]":
     try:
         yield AsyncSessionLocal()
@@ -166,10 +167,14 @@ class Database:
         if not include_hidden:
             statement = statement.where(Artifact.visible.is_(True))
         
-        if sort_direction == SortDirection.asc: direction = asc
-        else: direction = desc
-        if sort_by == SortType.name: statement = statement.order_by(direction(collate(Artifact.name, 'NOCASE')))
-        if sort_by == SortType.date: statement = statement.order_by(direction(Artifact.created))
+        if sort_direction == SortDirection.asc:
+            direction = asc
+        else:
+            direction = desc
+        if sort_by == SortType.name:
+            statement = statement.order_by(direction(collate(Artifact.name, 'NOCASE')))
+        if sort_by == SortType.date:
+            statement = statement.order_by(direction(Artifact.created))
 
         result = (await session.execute(statement)).scalars().all()
         return result or []

@@ -2,7 +2,6 @@ from functools import reduce
 from operator import add
 from os import getenv
 from typing import TYPE_CHECKING, Optional
-from enum import Enum
 
 import fastapi
 from fastapi import Depends, FastAPI, HTTPException
@@ -43,6 +42,7 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
+
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: "Request", exc: "HTTPException") -> "Response":
     headers = getattr(exc, "headers", None)
@@ -63,6 +63,7 @@ async def auth_token(authorization: str = Depends(APIKeyHeader(name="Authorizati
 @app.get("/", response_class=HTMLResponse)
 async def index():
     return INDEX_PAGE
+
 
 @app.get("/plugins", response_model=list[api_list.ListPluginResponse])
 async def plugins_list(
