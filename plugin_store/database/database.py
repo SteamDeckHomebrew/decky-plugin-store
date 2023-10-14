@@ -172,7 +172,6 @@ class Database:
             direction = asc
         else:
             direction = desc
-            
         if sort_by == SortType.name:
             statement = statement.order_by(direction(collate(Artifact.name, "NOCASE")))
         if sort_by == SortType.date:
