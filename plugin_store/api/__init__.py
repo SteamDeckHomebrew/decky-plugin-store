@@ -1,7 +1,7 @@
 from functools import reduce
 from operator import add
 from os import getenv
-from typing import TYPE_CHECKING, Optional
+from typing import Optional, TYPE_CHECKING
 
 import fastapi
 from fastapi import Depends, FastAPI, HTTPException
@@ -11,7 +11,7 @@ from fastapi.security import APIKeyHeader
 from fastapi.utils import is_body_allowed_for_status_code
 
 from cdn import upload_image, upload_version
-from constants import TEMPLATES_DIR, SortDirection, SortType
+from constants import SortDirection, SortType, TEMPLATES_DIR
 from database.database import database, Database
 from discord import post_announcement
 
