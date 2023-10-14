@@ -12,7 +12,7 @@ from fastapi import Depends
 from sqlalchemy.exc import NoResultFound, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.sql import delete, select
+from sqlalchemy.sql import delete, select, collate
 from sqlalchemy import asc, desc
 
 from constants import SortDirection, SortType
@@ -168,7 +168,7 @@ class Database:
         
         if sort_direction == SortDirection.asc: direction = asc
         else: direction = desc
-        if sort_by == SortType.name: statement = statement.order_by(direction(Artifact.name))
+        if sort_by == SortType.name: statement = statement.order_by(direction(collate(Artifact.name, 'NOCASE')))
         if sort_by == SortType.date: statement = statement.order_by(direction(Artifact.created))
 
         result = (await session.execute(statement)).scalars().all()
