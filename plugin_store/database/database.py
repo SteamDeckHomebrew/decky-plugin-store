@@ -15,6 +15,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import delete, select
 from sqlalchemy import asc, desc
 
+from constants import SortDirection, SortType
 from .models.Artifact import Artifact, PluginTag, Tag
 from .models.Version import Version
 
@@ -36,22 +37,6 @@ AsyncSessionLocal = sessionmaker(
 )
 
 db_lock = Lock()
-
-from enum import Enum, auto
-# TODO: move these enums somewhere to deduplicate them
-# also note that these StrEnums are from the python library, but the other ones are from fastapi.
-# i'm not sure what to do about that to be honest...
-####
-class SortDirection(StrEnum):
-    desc = auto()
-    asc = auto()
-
-class SortType(StrEnum):
-    name = auto()
-    date = auto()
-
-####
-
 
 async def get_session() -> "AsyncIterator[AsyncSession]":
     try:
@@ -181,8 +166,8 @@ class Database:
         if not include_hidden:
             statement = statement.where(Artifact.visible.is_(True))
         
-        if sort_direction == SortDirection.asc: direction = asc()
-        else: direction = desc()
+        if sort_direction == SortDirection.asc: direction = asc
+        else: direction = desc
         if sort_by == SortType.name: statement = statement.order_by(direction(Artifact.name))
         if sort_by == SortType.date: statement = statement.order_by(direction(Artifact.created))
 

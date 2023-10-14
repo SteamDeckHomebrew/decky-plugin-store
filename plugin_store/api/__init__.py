@@ -2,17 +2,17 @@ from functools import reduce
 from operator import add
 from os import getenv
 from typing import TYPE_CHECKING, Optional
-from enum import auto
+from enum import Enum
 
 import fastapi
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.security import APIKeyHeader
-from fastapi.utils import is_body_allowed_for_status_code, StrEnum
+from fastapi.utils import is_body_allowed_for_status_code
 
 from cdn import upload_image, upload_version
-from constants import TEMPLATES_DIR
+from constants import TEMPLATES_DIR, SortDirection, SortType
 from database.database import database, Database
 from discord import post_announcement
 
@@ -43,7 +43,6 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
-
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: "Request", exc: "HTTPException") -> "Response":
     headers = getattr(exc, "headers", None)
@@ -64,16 +63,6 @@ async def auth_token(authorization: str = Depends(APIKeyHeader(name="Authorizati
 @app.get("/", response_class=HTMLResponse)
 async def index():
     return INDEX_PAGE
-
-
-# TODO: move these enums somewhere to deduplicate them
-class SortDirection(StrEnum):
-    desc = auto()
-    asc = auto()
-
-class SortType(StrEnum):
-    name = auto()
-    date = auto()
 
 @app.get("/plugins", response_model=list[api_list.ListPluginResponse])
 async def plugins_list(
