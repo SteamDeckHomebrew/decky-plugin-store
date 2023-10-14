@@ -13,6 +13,7 @@ from sqlalchemy.exc import NoResultFound, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import delete, select
+from sqlalchemy import asc, desc
 
 from .models.Artifact import Artifact, PluginTag, Tag
 from .models.Version import Version
@@ -35,6 +36,20 @@ AsyncSessionLocal = sessionmaker(
 )
 
 db_lock = Lock()
+
+# TODO: move these enums somewhere to deduplicate them
+####
+class SortOption(StrEnum):
+    desc = auto()
+    asc = auto()
+    NONE = auto()
+
+class SortType(StrEnum):
+    name = auto()
+    date = auto()
+    NONE = auto()
+
+####
 
 
 async def get_session() -> "AsyncIterator[AsyncSession]":
@@ -151,6 +166,8 @@ class Database:
         name: "str | None" = None,
         tags: "Iterable[str] | None" = None,
         include_hidden: "bool" = False,
+        sort_by: SortType = SortType.NONE,
+        order_by: SortOption = SortOption.NONE,
         limit: int = 50,
         page: int = 0,
     ) -> list["Artifact"]:
@@ -162,6 +179,15 @@ class Database:
                 statement = statement.filter(Artifact.tags.any(tag=tag))
         if not include_hidden:
             statement = statement.where(Artifact.visible.is_(True))
+        direction = desc()
+        match (order_by):
+            case SortOption.asc: direction = asc()
+            case SortOption.desc: direction = desc()
+            case SortOption.NONE: pass
+        match (sort_by):
+            case SortType.name: statement = statement.order_by(direction(Artifact.name))
+            case SortType.date: statement = statement.order_by(direction(Artifact.created))
+            case SortType.NONE: pass
         result = (await session.execute(statement)).scalars().all()
         return result or []
 

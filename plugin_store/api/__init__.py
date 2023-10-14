@@ -2,13 +2,14 @@ from functools import reduce
 from operator import add
 from os import getenv
 from typing import TYPE_CHECKING
+from enum import auto
 
 import fastapi
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.security import APIKeyHeader
-from fastapi.utils import is_body_allowed_for_status_code
+from fastapi.utils import is_body_allowed_for_status_code, StrEnum
 
 from cdn import upload_image, upload_version
 from constants import TEMPLATES_DIR
@@ -65,15 +66,28 @@ async def index():
     return INDEX_PAGE
 
 
+# TODO: move these enums somewhere to deduplicate them
+class SortOption(StrEnum):
+    desc = auto()
+    asc = auto()
+    NONE = auto()
+
+class SortType(StrEnum):
+    name = auto()
+    date = auto()
+    NONE = auto()
+
 @app.get("/plugins", response_model=list[api_list.ListPluginResponse])
 async def plugins_list(
     query: str = "",
     tags: list[str] = fastapi.Query(default=[]),
     hidden: bool = False,
+    sort_by: SortType = SortType.NONE,
+    order_by: SortOption = SortOption.NONE,
     db: "Database" = Depends(database),
 ):
     tags = list(filter(None, reduce(add, (el.split(",") for el in tags), [])))
-    plugins = await db.search(db.session, query, tags, hidden)
+    plugins = await db.search(db.session, query, tags, hidden, sort_by, order_by)
     return plugins
 
 
