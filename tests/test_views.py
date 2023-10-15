@@ -7,6 +7,7 @@ from pytest_lazyfixture import lazy_fixture
 from sqlalchemy import func, select
 from sqlalchemy.exc import NoResultFound
 
+from constants import SortDirection, SortType
 from database.models.Artifact import Tag
 
 if TYPE_CHECKING:
@@ -81,6 +82,18 @@ async def test_plugin_list_endpoint_cors(
         pytest.param("t", {1, 2, 3, 4, 5, 6, 7, 8}, id="hidden-t"),
     ],
 )
+@pytest.mark.parametrize(
+    ("plugin_sort", "plugin_sort_direction", "id_order"),
+    [
+        pytest.param(None, None, [1, 2, 3, 4, 5, 6, 7, 8], id="default-sort"),
+        pytest.param(SortType.name, None, [3, 7, 8, 6, 5, 4, 2, 1], id="name-sort"),
+        pytest.param(SortType.name, SortDirection.desc, [3, 7, 8, 6, 5, 4, 2, 1], id="name-desc-sort"),
+        pytest.param(SortType.name, SortDirection.asc, [1, 2, 4, 5, 6, 8, 7, 3], id="name-asc-sort"),
+        pytest.param(SortType.date, None, [8, 7, 6, 5, 4, 3, 2, 1], id="date-sort"),
+        pytest.param(SortType.date, SortDirection.desc, [8, 7, 6, 5, 4, 3, 2, 1], id="date-desc-sort"),
+        pytest.param(SortType.date, SortDirection.asc, [1, 2, 3, 4, 5, 6, 7, 8], id="date-asc-sort"),
+    ],
+)
 async def test_plugins_list_endpoint(
     seed_db: "Database",
     client: "AsyncClient",
@@ -90,8 +103,12 @@ async def test_plugins_list_endpoint(
     tag_plugin_ids: set[int],
     hidden_filter: "str | bool | None",
     hidden_plugin_ids: set[int],
+    plugin_sort: "SortType",
+    plugin_sort_direction: "SortDirection",
+    id_order: list[int],
 ):
     plugin_ids = query_plugin_ids & tag_plugin_ids & hidden_plugin_ids
+    plugin_id_order = [id for id in id_order if id in plugin_ids]
     params: "dict[str, Union[str | bool]]" = {}
     if query_filter is not None:
         params["query"] = query_filter
@@ -99,6 +116,10 @@ async def test_plugins_list_endpoint(
         params["tags"] = tags_filter
     if hidden_filter is not None:
         params["hidden"] = hidden_filter
+    if plugin_sort is not None:
+        params["sort_by"] = plugin_sort.value
+    if plugin_sort_direction is not None:
+        params["sort_direction"] = plugin_sort_direction.value
     response = await client.get(f"/plugins?{urlencode(params)}")
     expected_response = [
         {
@@ -327,7 +348,10 @@ async def test_plugins_list_endpoint(
         },
     ]
     assert response.status_code == 200
-    assert response.json() == [response_obj for response_obj in expected_response if response_obj["id"] in plugin_ids]
+    assert response.json() == sorted(
+        [response_obj for response_obj in expected_response if response_obj["id"] in plugin_ids],
+        key=lambda obj: plugin_id_order.index(obj["id"]),
+    )
 
 
 @pytest.mark.asyncio
