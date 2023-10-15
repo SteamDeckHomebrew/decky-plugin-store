@@ -85,7 +85,7 @@ async def test_plugin_list_endpoint_cors(
 @pytest.mark.parametrize(
     ("plugin_sort", "plugin_sort_direction", "id_order"),
     [
-        pytest.param(None, None, [1, 2, 3, 4, 5, 6, 7, 8], id="default-sort"),
+        pytest.param(None, None, [1, 2, 3, 4, 5, 6, 7, 8], id="no-sort"),
         pytest.param(SortType.name, None, [3, 7, 8, 6, 5, 4, 2, 1], id="name-sort"),
         pytest.param(SortType.name, SortDirection.desc, [3, 7, 8, 6, 5, 4, 2, 1], id="name-desc-sort"),
         pytest.param(SortType.name, SortDirection.asc, [1, 2, 4, 5, 6, 8, 7, 3], id="name-asc-sort"),
