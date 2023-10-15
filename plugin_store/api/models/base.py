@@ -86,3 +86,5 @@ class BasePluginResponse(BasePlugin):
     image_url: str
     created: Optional[datetime]
     updated: Optional[datetime]
+    downloads: int
+    updates: int

@@ -18,6 +18,7 @@ from discord import post_announcement
 from .models import delete as api_delete
 from .models import list as api_list
 from .models import submit as api_submit
+from .models import increment as api_increment
 from .models import update as api_update
 from .utils import FormBody
 
@@ -78,7 +79,7 @@ async def plugins_list(
 
 @app.post("/increment")
 async def submit_release(
-    data: "api_submit.SubmitIncrementRequest" = FormBody(api_submit.SubmitIncrementRequest),
+    data: "api_increment.SubmitIncrementRequest" = FormBody(api_increment.SubmitIncrementRequest),
     db: "Database" = Depends(database),
 ):
     await db.increment_value(db.session, data.name, data.isUpdate)
