@@ -350,7 +350,7 @@ async def test_plugins_list_endpoint(
     assert response.status_code == 200
     assert response.json() == sorted(
         [response_obj for response_obj in expected_response if response_obj["id"] in plugin_ids],
-        key=lambda obj: plugin_id_order.index(obj["id"]),
+        key=lambda obj: plugin_id_order.index(obj["id"]), # type: ignore[arg-type]
     )
 
 
