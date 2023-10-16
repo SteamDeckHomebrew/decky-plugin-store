@@ -727,7 +727,8 @@ async def test_update_endpoint(
         "created": min(resulting_versions_dates),
         "updated": max(resulting_versions_dates),
         "versions": [
-            {**version, "created": date} for version, date in zip(reversed(with_versions), resulting_versions_dates)
+            {**version, "created": date, "updates": 0, "downloads": 0}
+            for version, date in zip(reversed(with_versions), resulting_versions_dates)
         ],
         "visible": make_visible,
     }
@@ -753,8 +754,6 @@ async def test_update_endpoint(
     ):
         assert actual.name == expected["name"]
         assert actual.hash == expected["hash"]
-        assert actual.downloads == 0
-        assert actual.updates == 0
         assert actual.created.isoformat().replace("+00:00", "Z") == expected["created"]  # type:ignore[union-attr]
 
     statement = select(Tag).where(Tag.tag == "new-tag-1").with_only_columns([func.count()]).order_by(None)
