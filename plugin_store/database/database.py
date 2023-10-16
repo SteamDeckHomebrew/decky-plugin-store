@@ -184,9 +184,9 @@ class Database:
     
     async def increment_value(self, session: "AsyncSession", name: str, isUpdate: bool):
         if isUpdate == True:
-            query = "UPDATE artifacts SET updates = updates + 1 WHERE name == :name"
+            await session.execute(Artifact.update().values(updates=Artifact.updates + 1).where(Artifact.name == name))
         else:
-            query = "UPDATE artifacts SET downloads = downloads + 1 WHERE name == :name"
+            await session.execute(Artifact.update().values(downloads=Artifact.downloads + 1).where(Artifact.name == name))
         await session.execute(query, params={"name":name})
         return await session.commit()
 
