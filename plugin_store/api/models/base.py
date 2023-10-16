@@ -31,8 +31,6 @@ class BaseModel(PydanticBaseModel):
 class PluginVersion(BaseModel):
     name: str
     hash: str
-    downloads: int
-    updates: int
 
 
 class BasePlugin(BaseModel):
@@ -76,6 +74,8 @@ class PluginVersionResponse(PluginVersion):
         orm_mode = True
 
     created: datetime
+    downloads: int
+    updates: int
 
 
 class BasePluginResponse(BasePlugin):
