@@ -16,7 +16,6 @@ from database.database import database, Database
 from discord import post_announcement
 
 from .models import delete as api_delete
-from .models import increment as api_increment
 from .models import list as api_list
 from .models import submit as api_submit
 from .models import update as api_update
@@ -78,13 +77,14 @@ async def plugins_list(
     return plugins
 
 
-@app.post("/increment/{plugin_id}")
-async def increment_plugin(
-    plugin_id: str,
-    isUpdate: bool,
+@app.post("/increment/{version_hash}")
+async def increment_plugin_install_count(
+    version_hash: str,
+    isUpdate: bool = True,
     db: "Database" = Depends(database),
 ):
-    await db.increment_value(db.session, plugin_id, isUpdate)
+    result = await db.increment_installs(db.session, version_hash, isUpdate)
+    print(result)
     return Response(status_code=fastapi.status.HTTP_200_OK)
 
 

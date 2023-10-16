@@ -33,8 +33,6 @@ class Artifact(Base):
     name: str = Column(Text)
     author: str = Column(Text)
     description: str = Column(Text)
-    downloads: int = Column(Integer)
-    updates: int = Column(Integer)
     _image_path: "str | None" = Column("image_path", Text, nullable=True)
     tags: "list[Tag]" = relationship(
         "Tag", secondary=PluginTag, cascade="all, delete", order_by="Tag.tag", lazy="selectin"

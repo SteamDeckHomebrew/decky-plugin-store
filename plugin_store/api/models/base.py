@@ -31,6 +31,8 @@ class BaseModel(PydanticBaseModel):
 class PluginVersion(BaseModel):
     name: str
     hash: str
+    downloads: int
+    updates: int
 
 
 class BasePlugin(BaseModel):
@@ -86,5 +88,3 @@ class BasePluginResponse(BasePlugin):
     image_url: str
     created: Optional[datetime]
     updated: Optional[datetime]
-    downloads: int
-    updates: int
