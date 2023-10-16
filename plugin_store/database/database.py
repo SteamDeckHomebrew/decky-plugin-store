@@ -190,4 +190,5 @@ class Database:
             statement = statement.values(downloads=Version.downloads + 1)
         r = await session.execute(statement.where(Version.hash == version_hash))
         await session.commit()
-        return r.rowcount == 1
+        # if rowcount is zero then the given hash was not found in the database
+        return r.rowcount == 1 # type: ignore[attr-defined]
