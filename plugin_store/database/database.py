@@ -191,4 +191,4 @@ class Database:
         r = await session.execute(statement.where(Version.hash == version_hash))
         await session.commit()
         # if rowcount is zero then the given hash was not found in the database
-        return r.rowcount == 1 # type: ignore[attr-defined]
+        return r.rowcount == 1  # type: ignore[attr-defined]
