@@ -2,17 +2,20 @@ import logging
 from asyncio import Lock
 from datetime import datetime
 from os import getenv
-from typing import TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from alembic import command
 from alembic.config import Config
 from asgiref.sync import sync_to_async
 from fastapi import Depends
+from sqlalchemy import asc, desc
 from sqlalchemy.exc import NoResultFound, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.sql import delete, select
+from sqlalchemy.sql import collate, delete, select
+
+from constants import SortDirection, SortType
 
 from .models.Artifact import Artifact, PluginTag, Tag
 from .models.Version import Version
@@ -151,6 +154,8 @@ class Database:
         name: "str | None" = None,
         tags: "Iterable[str] | None" = None,
         include_hidden: "bool" = False,
+        sort_by: Optional[SortType] = None,
+        sort_direction: SortDirection = SortDirection.desc,
         limit: int = 50,
         page: int = 0,
     ) -> list["Artifact"]:
@@ -162,6 +167,16 @@ class Database:
                 statement = statement.filter(Artifact.tags.any(tag=tag))
         if not include_hidden:
             statement = statement.where(Artifact.visible.is_(True))
+
+        if sort_direction == SortDirection.asc:
+            direction = asc
+        else:
+            direction = desc
+        if sort_by == SortType.name:
+            statement = statement.order_by(direction(collate(Artifact.name, "NOCASE")))
+        if sort_by == SortType.date:
+            statement = statement.order_by(direction(Artifact.created))
+
         result = (await session.execute(statement)).scalars().all()
         return result or []
 
