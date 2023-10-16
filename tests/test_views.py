@@ -39,7 +39,7 @@ async def test_index_endpoint(client: "AsyncClient", index_template: str):
 async def test_increment_endpoint(
     seed_db: "Database", client: "AsyncClient", hash: str, return_code: int, isUpdate: "bool | None"
 ):
-    if isUpdate == None:
+    if isUpdate is None:
         response = await client.post(f"/increment/{hash}")
     else:
         response = await client.post(f"/increment/{hash}?isUpdate={isUpdate}")
@@ -47,7 +47,7 @@ async def test_increment_endpoint(
     assert response.status_code == return_code
     if response.status_code == 200:
         plugin = await seed_db.get_plugin_by_id(seed_db.session, 1)
-        if isUpdate == False:
+        if isUpdate is False:
             assert plugin.versions[0].downloads == 1
             assert plugin.versions[0].updates == 0
         else:
@@ -576,8 +576,6 @@ async def test_submit_endpoint(
         assert plugin.name == name
         assert plugin.author == "plugin-author-of-new-plugin"
         assert plugin.description == "Description of our brand new plugin!"
-        assert plugin.downloads == 0
-        assert plugin.updates == 0
         assert (
             plugin._image_path
             == f"artifact_images/{name}-c68fb83de3e223e8e79568427c4f4461ff8733bb63465f94330bb1fa7030d236.png"
@@ -590,6 +588,8 @@ async def test_submit_endpoint(
         for actual, expected in zip(plugin.versions, resulting_versions):
             assert actual.name == expected["name"]
             assert actual.hash == expected["hash"]
+            assert actual.downloads == 0
+            assert actual.updates == 0
 
         statement = select(Tag).where(Tag.tag == "tag-1").with_only_columns([func.count()]).order_by(None)
         assert (await db_fixture.session.execute(statement)).scalar() == 1
@@ -735,6 +735,8 @@ async def test_update_endpoint(
     ):
         assert actual.name == expected["name"]
         assert actual.hash == expected["hash"]
+        assert actual.downloads == 0
+        assert actual.updates == 0
         assert actual.created.isoformat().replace("+00:00", "Z") == expected["created"]  # type:ignore[union-attr]
 
     statement = select(Tag).where(Tag.tag == "new-tag-1").with_only_columns([func.count()]).order_by(None)
