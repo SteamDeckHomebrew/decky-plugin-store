@@ -1,7 +1,7 @@
 from functools import reduce
 from operator import add
 from os import getenv
-from typing import TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 import fastapi
 from fastapi import Depends, FastAPI, HTTPException
@@ -11,7 +11,7 @@ from fastapi.security import APIKeyHeader
 from fastapi.utils import is_body_allowed_for_status_code
 
 from cdn import upload_image, upload_version
-from constants import TEMPLATES_DIR
+from constants import SortDirection, SortType, TEMPLATES_DIR
 from database.database import database, Database
 from discord import post_announcement
 
@@ -70,10 +70,12 @@ async def plugins_list(
     query: str = "",
     tags: list[str] = fastapi.Query(default=[]),
     hidden: bool = False,
+    sort_by: Optional[SortType] = None,
+    sort_direction: SortDirection = SortDirection.desc,
     db: "Database" = Depends(database),
 ):
     tags = list(filter(None, reduce(add, (el.split(",") for el in tags), [])))
-    plugins = await db.search(db.session, query, tags, hidden)
+    plugins = await db.search(db.session, query, tags, hidden, sort_by, sort_direction)
     return plugins
 
 
