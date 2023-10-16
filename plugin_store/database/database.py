@@ -12,7 +12,7 @@ from fastapi import Depends
 from sqlalchemy.exc import NoResultFound, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.sql import delete, select
+from sqlalchemy.sql import delete, select, update
 
 from .models.Artifact import Artifact, PluginTag, Tag
 from .models.Version import Version
@@ -181,12 +181,10 @@ class Database:
         await session.execute(delete(Version).where(Version.artifact_id == id))
         await session.execute(delete(Artifact).where(Artifact.id == id))
         return await session.commit()
-    
-    async def increment_value(self, session: "AsyncSession", name: str, isUpdate: bool):
-        if isUpdate == True:
-            await session.execute(Artifact.update().values(updates=Artifact.updates + 1).where(Artifact.name == name))
-        else:
-            await session.execute(Artifact.update().values(downloads=Artifact.downloads + 1).where(Artifact.name == name))
-        await session.execute(query, params={"name":name})
-        return await session.commit()
 
+    async def increment_value(self, session: "AsyncSession", id: str, isUpdate: bool):
+        if isUpdate == True:
+            await session.execute(update(Artifact).values(updates=Artifact.updates + 1).where(Artifact.id == id))
+        else:
+            await session.execute(update(Artifact).values(downloads=Artifact.downloads + 1).where(Artifact.id == id))
+        return await session.commit()

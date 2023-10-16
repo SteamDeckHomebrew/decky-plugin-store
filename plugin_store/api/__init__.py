@@ -16,9 +16,9 @@ from database.database import database, Database
 from discord import post_announcement
 
 from .models import delete as api_delete
+from .models import increment as api_increment
 from .models import list as api_list
 from .models import submit as api_submit
-from .models import increment as api_increment
 from .models import update as api_update
 from .utils import FormBody
 
@@ -77,12 +77,16 @@ async def plugins_list(
     plugins = await db.search(db.session, query, tags, hidden)
     return plugins
 
-@app.post("/increment")
-async def submit_release(
-    data: "api_increment.SubmitIncrementRequest" = FormBody(api_increment.SubmitIncrementRequest),
+
+@app.post("/increment/{plugin_id}")
+async def increment_plugin(
+    plugin_id: str,
+    isUpdate: bool,
     db: "Database" = Depends(database),
 ):
-    await db.increment_value(db.session, data.name, data.isUpdate)
+    await db.increment_value(db.session, plugin_id, isUpdate)
+    return Response(status_code=fastapi.status.HTTP_200_OK)
+
 
 @app.post("/__auth", response_model=str, dependencies=[Depends(auth_token)])
 async def auth_check():
