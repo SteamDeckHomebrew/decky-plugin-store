@@ -184,7 +184,7 @@ class Database:
 
     async def increment_installs(self, session: "AsyncSession", version_hash: str, isUpdate: bool) -> bool:
         statement = update(Version)
-        if isUpdate == True:
+        if isUpdate:
             statement = statement.values(updates=Version.updates + 1)
         else:
             statement = statement.values(downloads=Version.downloads + 1)
