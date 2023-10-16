@@ -83,9 +83,11 @@ async def increment_plugin_install_count(
     isUpdate: bool = True,
     db: "Database" = Depends(database),
 ):
-    result = await db.increment_installs(db.session, version_hash, isUpdate)
-    print(result)
-    return Response(status_code=fastapi.status.HTTP_200_OK)
+    success = await db.increment_installs(db.session, version_hash, isUpdate)
+    if success:
+        return Response(status_code=fastapi.status.HTTP_200_OK)
+    else:
+        return Response(status_code=fastapi.status.HTTP_404_NOT_FOUND)
 
 
 @app.post("/__auth", response_model=str, dependencies=[Depends(auth_token)])

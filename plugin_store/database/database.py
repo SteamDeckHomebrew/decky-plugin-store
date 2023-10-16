@@ -182,9 +182,12 @@ class Database:
         await session.execute(delete(Artifact).where(Artifact.id == id))
         return await session.commit()
 
-    async def increment_installs(self, session: "AsyncSession", version_hash: str, isUpdate: bool):
+    async def increment_installs(self, session: "AsyncSession", version_hash: str, isUpdate: bool) -> bool:
+        statement = update(Version)
         if isUpdate == True:
-            await session.execute(update(Version).values(updates=Version.updates + 1).where(Version.hash == version_hash))
+            statement = statement.values(updates=Version.updates + 1)
         else:
-            await session.execute(update(Version).values(downloads=Version.downloads + 1).where(Version.hash == version_hash))
-        return await session.commit()
+            statement = statement.values(downloads=Version.downloads + 1)
+        r = await session.execute(statement.where(Version.hash == version_hash))
+        await session.commit()
+        return r.rowcount == 1
