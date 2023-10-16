@@ -28,6 +28,35 @@ async def test_index_endpoint(client: "AsyncClient", index_template: str):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("client", [lazy_fixture("client_unauth"), lazy_fixture("client_auth")])
+@pytest.mark.parametrize("isUpdate", [True, False, None], ids=["update", "download", "no_isUpdate"])
+@pytest.mark.parametrize(
+    ("hash", "return_code"),
+    [
+        pytest.param("f06b77407d0ef08f5667591ab386eeff2090c340f3eadf76006db6d1ac721029", 200, id="real_version"),
+        pytest.param("not_a_real_hash", 404, id="invalid_version"),
+    ],
+)
+async def test_increment_endpoint(
+    seed_db: "Database", client: "AsyncClient", hash: str, return_code: int, isUpdate: "bool | None"
+):
+    if isUpdate == None:
+        response = await client.post(f"/increment/{hash}")
+    else:
+        response = await client.post(f"/increment/{hash}?isUpdate={isUpdate}")
+
+    assert response.status_code == return_code
+    if response.status_code == 200:
+        plugin = await seed_db.get_plugin_by_id(seed_db.session, 1)
+        if isUpdate == False:
+            assert plugin.versions[0].downloads == 1
+            assert plugin.versions[0].updates == 0
+        else:
+            assert plugin.versions[0].downloads == 0
+            assert plugin.versions[0].updates == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("client", [lazy_fixture("client_unauth"), lazy_fixture("client_auth")])
 @pytest.mark.parametrize(
     ("origin", "result"),
     [("https://example.com", status.HTTP_400_BAD_REQUEST), ("https://steamloopback.host", status.HTTP_200_OK)],
@@ -115,16 +144,22 @@ async def test_plugins_list_endpoint(
                     "name": "1.0.0",
                     "hash": "f06b77407d0ef08f5667591ab386eeff2090c340f3eadf76006db6d1ac721029",
                     "created": "2022-02-25T00:00:02Z",
+                    "downloads": 0,
+                    "updates": 0,
                 },
                 {
                     "name": "0.2.0",
                     "hash": "750e557099102527b927be4b9e79392c8f4e011d8a5848480afb61fc0de4f5af",
                     "created": "2022-02-25T00:00:01Z",
+                    "downloads": 0,
+                    "updates": 0,
                 },
                 {
                     "name": "0.1.0",
                     "hash": "44733735485ece810402fff9e7a608a49039c0b363e52ff62d07b84ab2b40b06",
                     "created": "2022-02-25T00:00:00Z",
+                    "downloads": 0,
+                    "updates": 0,
                 },
             ],
             "visible": True,
@@ -143,11 +178,15 @@ async def test_plugins_list_endpoint(
                     "name": "2.0.0",
                     "hash": "56635138a27a6b0c57f0f06cdd58eadf58fff966516c38fca530e2d0f12a3190",
                     "created": "2022-02-25T00:01:01Z",
+                    "downloads": 0,
+                    "updates": 0,
                 },
                 {
                     "name": "1.1.0",
                     "hash": "aeee42b51db3d73c6b75c08ccd46feff21b6de5f41bf1494d147471df850d947",
                     "created": "2022-02-25T00:01:00Z",
+                    "downloads": 0,
+                    "updates": 0,
                 },
             ],
             "visible": True,
@@ -166,16 +205,22 @@ async def test_plugins_list_endpoint(
                     "name": "3.2.0",
                     "hash": "ec2516b144cb429b1473104efcbe345da2b82347fbbb587193a22429a0dc6ab6",
                     "created": "2022-02-25T00:02:02Z",
+                    "downloads": 0,
+                    "updates": 0,
                 },
                 {
                     "name": "3.1.0",
                     "hash": "8d9a561a9fc5c7509b5fe0e54213641e502e3b1e456af34cc44aa0a526f85f9b",
                     "created": "2022-02-25T00:02:01Z",
+                    "downloads": 0,
+                    "updates": 0,
                 },
                 {
                     "name": "3.0.0",
                     "hash": "9463611d748129d063f697ec7bdd770b7d5b82c50b93582e31e6440236ba8f66",
                     "created": "2022-02-25T00:02:00Z",
+                    "downloads": 0,
+                    "updates": 0,
                 },
             ],
             "visible": True,
@@ -194,21 +239,29 @@ async def test_plugins_list_endpoint(
                     "name": "4.0.0",
                     "hash": "8eee479a02359eeb0f30f86f0bec493ba7b31ff738509a3df0f5261dcad8f45f",
                     "created": "2022-02-25T00:03:03Z",
+                    "downloads": 0,
+                    "updates": 0,
                 },
                 {
                     "name": "3.0.0",
                     "hash": "bb70c8d12deee43fb3f2529807b132432c63253c9d27cb9f15f3c4ceae5cfc62",
                     "created": "2022-02-25T00:03:02Z",
+                    "downloads": 0,
+                    "updates": 0,
                 },
                 {
                     "name": "2.0.0",
                     "hash": "02dd930214f64c3694122435b8a58641da279c83cd9beb9b47adf5173e07e6e5",
                     "created": "2022-02-25T00:03:01Z",
+                    "downloads": 0,
+                    "updates": 0,
                 },
                 {
                     "name": "1.0.0",
                     "hash": "51ab66013d901f12a45142248132c0c98539c749b6a3b341ab4da2b9df4cdc09",
                     "created": "2022-02-25T00:03:00Z",
+                    "downloads": 0,
+                    "updates": 0,
                 },
             ],
             "visible": True,
@@ -227,16 +280,22 @@ async def test_plugins_list_endpoint(
                     "name": "1.0.0",
                     "hash": "562eec14bf4b01c5769acb1b8854b3382b7bbc7333f45d2fd200a752f72fa3a0",
                     "created": "2022-02-25T00:04:02Z",
+                    "downloads": 0,
+                    "updates": 0,
                 },
                 {
                     "name": "0.2.0",
                     "hash": "37014c0eca288692ff8992ce1ef0d590a76c3eb1c44f7d9dc1e6963221ec87f8",
                     "created": "2022-02-25T00:04:01Z",
+                    "downloads": 0,
+                    "updates": 0,
                 },
                 {
                     "name": "0.1.0",
                     "hash": "6c5e8ab31c430eaed0d9876ea164769913e64094848ca8bfd44d322a769e49cd",
                     "created": "2022-02-25T00:04:00Z",
+                    "downloads": 0,
+                    "updates": 0,
                 },
             ],
             "visible": False,
@@ -255,11 +314,15 @@ async def test_plugins_list_endpoint(
                     "name": "2.0.0",
                     "hash": "611a4f133a0e2f7ca4285478d4be7c6e09acc256c9f47d71a075d2af279d2c96",
                     "created": "2022-02-25T00:05:01Z",
+                    "downloads": 0,
+                    "updates": 0,
                 },
                 {
                     "name": "1.1.0",
                     "hash": "dd3ea0a0674ac176f431d0dd3ae11df7a56368f1ce8965c6bf41ae264cbb0eb3",
                     "created": "2022-02-25T00:05:00Z",
+                    "downloads": 0,
+                    "updates": 0,
                 },
             ],
             "visible": False,
@@ -278,16 +341,22 @@ async def test_plugins_list_endpoint(
                     "name": "3.2.0",
                     "hash": "a4410618d61cf061f508d0c20fb7145bf28ae218eec7154071c3ec03ec04ec5b",
                     "created": "2022-02-25T00:06:02Z",
+                    "downloads": 0,
+                    "updates": 0,
                 },
                 {
                     "name": "3.1.0",
                     "hash": "9848a9d18e91da6cd678adccbbdfa09474cc587e96234dfd72c2a1d0f0c8132c",
                     "created": "2022-02-25T00:06:01Z",
+                    "downloads": 0,
+                    "updates": 0,
                 },
                 {
                     "name": "3.0.0",
                     "hash": "370e6e290c94ba02af39fc11d67f0e8769e00bcb3b7e21499bc0be622fe676e9",
                     "created": "2022-02-25T00:06:00Z",
+                    "downloads": 0,
+                    "updates": 0,
                 },
             ],
             "visible": False,
@@ -306,21 +375,29 @@ async def test_plugins_list_endpoint(
                     "name": "4.0.0",
                     "hash": "44bc28702614ff73ae8c68dc6298369bb25e792776925930bd38ea592df36af9",
                     "created": "2022-02-25T00:07:03Z",
+                    "downloads": 0,
+                    "updates": 0,
                 },
                 {
                     "name": "3.0.0",
                     "hash": "c9514fc40d9c32dee69033b104102abac98e6689ccfe48d947e30991e1778a88",
                     "created": "2022-02-25T00:07:02Z",
+                    "downloads": 0,
+                    "updates": 0,
                 },
                 {
                     "name": "2.0.0",
                     "hash": "6f55affd9be35d799a6d6967bbf6822240f19d22a9cbe340443d5c499a4a75ab",
                     "created": "2022-02-25T00:07:01Z",
+                    "downloads": 0,
+                    "updates": 0,
                 },
                 {
                     "name": "1.0.0",
                     "hash": "bae8a710fe1e925b3f1489b7a4e50d6555be40182f238e65736ced607489e3b3",
                     "created": "2022-02-25T00:07:00Z",
+                    "downloads": 0,
+                    "updates": 0,
                 },
             ],
             "visible": False,
@@ -499,6 +576,8 @@ async def test_submit_endpoint(
         assert plugin.name == name
         assert plugin.author == "plugin-author-of-new-plugin"
         assert plugin.description == "Description of our brand new plugin!"
+        assert plugin.downloads == 0
+        assert plugin.updates == 0
         assert (
             plugin._image_path
             == f"artifact_images/{name}-c68fb83de3e223e8e79568427c4f4461ff8733bb63465f94330bb1fa7030d236.png"
