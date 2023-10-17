@@ -200,13 +200,15 @@ class Database:
         await session.execute(delete(Artifact).where(Artifact.id == id))
         return await session.commit()
 
-    async def increment_installs(self, session: "AsyncSession", version_hash: str, isUpdate: bool) -> bool:
+    async def increment_installs(
+        self, session: "AsyncSession", version_name: str, file_hash: str, isUpdate: bool
+    ) -> bool:
         statement = update(Version)
         if isUpdate:
             statement = statement.values(updates=Version.updates + 1)
         else:
             statement = statement.values(downloads=Version.downloads + 1)
-        r = await session.execute(statement.where(Version.hash == version_hash))
+        r = await session.execute(statement.where((Version.hash == file_hash) & (Version.name == version_name)))
         await session.commit()
         # if rowcount is zero then the given hash was not found in the database
         return r.rowcount == 1  # type: ignore[attr-defined]
