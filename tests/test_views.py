@@ -31,24 +31,25 @@ async def test_index_endpoint(client: "AsyncClient", index_template: str):
 @pytest.mark.parametrize("client", [lazy_fixture("client_unauth"), lazy_fixture("client_auth")])
 @pytest.mark.parametrize("isUpdate", [True, False, None], ids=["update", "download", "no_isUpdate"])
 @pytest.mark.parametrize(
-    ("version_name", "hash", "return_code"),
+    ("plugin_name", "version_name", "return_code"),
     [
-        pytest.param(
-            "1.0.0", "f06b77407d0ef08f5667591ab386eeff2090c340f3eadf76006db6d1ac721029", 200, id="real_version"
-        ),
-        pytest.param("1.0.0", "not_a_real_hash", 404, id="invalid_hash"),
-        pytest.param(
-            "not_a_version", "f06b77407d0ef08f5667591ab386eeff2090c340f3eadf76006db6d1ac721029", 404, id="invalid_name"
-        ),
+        pytest.param("plugin-1", "1.0.0", 200, id="real"),
+        pytest.param("plugin-1", "not_a_real_version", 404, id="invalid_version"),
+        pytest.param("not_a_real_name", "1.0.0", 404, id="invalid_name"),
     ],
 )
 async def test_increment_endpoint(
-    seed_db: "Database", client: "AsyncClient", version_name: str, hash: str, return_code: int, isUpdate: "bool | None"
+    seed_db: "Database",
+    client: "AsyncClient",
+    plugin_name: str,
+    version_name: str,
+    return_code: int,
+    isUpdate: "bool | None",
 ):
     if isUpdate is None:
-        response = await client.post(f"/increment/{version_name}/{hash}")
+        response = await client.post(f"/plugins/{plugin_name}/versions/{version_name}/increment")
     else:
-        response = await client.post(f"/increment/{version_name}/{hash}?isUpdate={isUpdate}")
+        response = await client.post(f"/plugins/{plugin_name}/versions/{version_name}/increment?isUpdate={isUpdate}")
 
     assert response.status_code == return_code
     if response.status_code == 200:

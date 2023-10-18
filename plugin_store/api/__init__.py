@@ -79,14 +79,14 @@ async def plugins_list(
     return plugins
 
 
-@app.post("/increment/{version_name}/{file_hash}")
+@app.post("/plugins/{plugin_name}/versions/{version_name}/increment")
 async def increment_plugin_install_count(
+    plugin_name: str,
     version_name: str,
-    file_hash: str,
     isUpdate: bool = True,
     db: "Database" = Depends(database),
 ):
-    success = await db.increment_installs(db.session, version_name, file_hash, isUpdate)
+    success = await db.increment_installs(db.session, plugin_name, version_name, isUpdate)
     if success:
         return Response(status_code=fastapi.status.HTTP_200_OK)
     else:
