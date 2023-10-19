@@ -1,14 +1,15 @@
 from functools import reduce
 from operator import add
 from os import getenv
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 
 import fastapi
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.security import APIKeyHeader
 from fastapi.utils import is_body_allowed_for_status_code
+from limits import parse, storage, strategies
 
 from cdn import upload_image, upload_version
 from constants import SortDirection, SortType, TEMPLATES_DIR
@@ -20,10 +21,6 @@ from .models import list as api_list
 from .models import submit as api_submit
 from .models import update as api_update
 from .utils import FormBody
-
-if TYPE_CHECKING:
-    from starlette.requests import Request
-
 
 app = FastAPI()
 
@@ -41,6 +38,11 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"],
 )
+
+# memory_storage = storage.MemoryStorage()
+memory_storage = storage.RedisStorage("redis://redis_db:6379/1")
+increment_limit = parse("2/day")
+fixed_window = strategies.FixedWindowRateLimiter(memory_storage)
 
 
 @app.exception_handler(HTTPException)
@@ -79,13 +81,21 @@ async def plugins_list(
     return plugins
 
 
-@app.post("/plugins/{plugin_name}/versions/{version_name}/increment", responses={404: {}})
+@app.post("/plugins/{plugin_name}/versions/{version_name}/increment", responses={404: {}, 429: {}})
 async def increment_plugin_install_count(
+    request: Request,
     plugin_name: str,
     version_name: str,
     isUpdate: bool = True,
     db: "Database" = Depends(database),
 ):
+    ip = request.headers.get("cf-connecting-ip")
+    if ip is None:
+        ip = request.headers.get("x-forwarded-for")
+    if ip is None:
+        ip = request.client.host  # type: ignore [union-attr]
+    if not fixed_window.hit(increment_limit, plugin_name, ip):
+        return Response(status_code=fastapi.status.HTTP_429_TOO_MANY_REQUESTS)
     success = await db.increment_installs(db.session, plugin_name, version_name, isUpdate)
     if success:
         return Response(status_code=fastapi.status.HTTP_200_OK)
