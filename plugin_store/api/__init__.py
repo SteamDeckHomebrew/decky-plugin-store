@@ -79,7 +79,7 @@ async def plugins_list(
     return plugins
 
 
-@app.post("/plugins/{plugin_name}/versions/{version_name}/increment")
+@app.post("/plugins/{plugin_name}/versions/{version_name}/increment", responses={404: {}})
 async def increment_plugin_install_count(
     plugin_name: str,
     version_name: str,
