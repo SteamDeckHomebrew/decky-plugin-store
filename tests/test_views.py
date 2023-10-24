@@ -4,6 +4,7 @@ from urllib.parse import urlencode
 import pytest
 from fastapi import status
 from pytest_lazyfixture import lazy_fixture
+from pytest_mock import MockFixture
 from sqlalchemy import func, select
 from sqlalchemy.exc import NoResultFound
 
@@ -45,7 +46,9 @@ async def test_increment_endpoint(
     version_name: str,
     return_code: int,
     isUpdate: "bool | None",
+    mocker: "MockFixture",
 ):
+    mocker.patch("api.rate_limit")  # remove ratelimit
     if isUpdate is None:
         response = await client.post(f"/plugins/{plugin_name}/versions/{version_name}/increment")
     else:

@@ -39,10 +39,10 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
-# memory_storage = storage.MemoryStorage()
-memory_storage = storage.RedisStorage("redis://redis_db:6379/1")
+# rate_limit_storage = storage.MemoryStorage()
+rate_limit_storage = storage.RedisStorage("redis://redis_db:6379")
 increment_limit = parse("2/day")
-fixed_window = strategies.FixedWindowRateLimiter(memory_storage)
+rate_limit = strategies.FixedWindowRateLimiter(rate_limit_storage)
 
 
 @app.exception_handler(HTTPException)
@@ -91,13 +91,13 @@ async def increment_plugin_install_count(
 ):
     ip = request.headers.get("cf-connecting-ip")
     if ip is None:
-        ip = request.headers.get("x-forwarded-for")
-    if ip is None:
         ip = request.client.host  # type: ignore [union-attr]
-    if not fixed_window.hit(increment_limit, plugin_name, ip):
+    ip = hash(ip)
+    if not rate_limit.test(increment_limit, plugin_name, ip):
         return Response(status_code=fastapi.status.HTTP_429_TOO_MANY_REQUESTS)
     success = await db.increment_installs(db.session, plugin_name, version_name, isUpdate)
     if success:
+        rate_limit.hit(increment_limit, plugin_name, ip)
         return Response(status_code=fastapi.status.HTTP_200_OK)
     else:
         return Response(status_code=fastapi.status.HTTP_404_NOT_FOUND)
