@@ -9,7 +9,7 @@ def getIpHash(request: Request):
     ip = request.headers.get("cf-connecting-ip")
     if ip is None:
         ip = request.client.host  # type: ignore [union-attr]
-    ip = hash(ip)
+    return hash(ip)
 
 
 def form_body(cls):
