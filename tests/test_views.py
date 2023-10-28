@@ -3,6 +3,7 @@ from urllib.parse import urlencode
 
 import pytest
 from fastapi import status
+from limits import storage
 from pytest_lazyfixture import lazy_fixture
 from pytest_mock import MockFixture
 from sqlalchemy import func, select
@@ -63,6 +64,22 @@ async def test_increment_endpoint(
         else:
             assert plugin.versions[0].downloads == 0
             assert plugin.versions[0].updates == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("client", [lazy_fixture("client_unauth"), lazy_fixture("client_auth")])
+async def test_increment_ratelimit(client: "AsyncClient", mocker: "MockFixture"):
+    def post_request(plugin_name, version_name):
+        return await client.post(f"/plugins/{plugin_name}/versions/{version_name}/increment")
+
+    mocker.patch("api.rate_limit_storage", storage.MemoryStorage())
+    mocker.patch("api.utils.getIpHash", "user one")
+    assert post_request("plugin-1", "1.0.0").status_code == 200
+    assert post_request("plugin-1", "0.2.0").status_code == 200
+    assert post_request("plugin-2", "2.0.0").status_code == 200
+    assert post_request("plugin-1", "1.0.0").status_code == 429
+    assert post_request("plugin-2", "2.0.0").status_code == 200
+    assert post_request("plugin-2", "2.0.0").status_code == 429
 
 
 @pytest.mark.asyncio
