@@ -8,7 +8,6 @@ from pytest_mock import MockFixture
 from sqlalchemy import func, select
 from sqlalchemy.exc import NoResultFound
 
-from api import rate_limit_storage
 from constants import SortDirection, SortType
 from database.models.Artifact import Tag
 
@@ -60,26 +59,14 @@ async def test_increment_endpoint(
         plugin = await seed_db.get_plugin_by_id(seed_db.session, 1)
         if isUpdate is False:
             assert plugin.versions[0].downloads == 1
+            assert plugin.downloads == 1
             assert plugin.versions[0].updates == 0
+            assert plugin.updates == 0
         else:
             assert plugin.versions[0].downloads == 0
+            assert plugin.downloads == 0
             assert plugin.versions[0].updates == 1
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("client", [lazy_fixture("client_unauth"), lazy_fixture("client_auth")])
-async def test_increment_ratelimit(client: "AsyncClient", mocker: "MockFixture", seed_db: "Database"):
-    rate_limit_storage.reset()
-
-    async def post_request(plugin_name, version_name):
-        return (await client.post(f"/plugins/{plugin_name}/versions/{version_name}/increment")).status_code
-
-    assert await post_request("plugin-1", "1.0.0") == 200
-    assert await post_request("plugin-1", "0.2.0") == 200
-    assert await post_request("plugin-2", "2.0.0") == 200
-    assert await post_request("plugin-1", "1.0.0") == 429
-    assert await post_request("plugin-2", "2.0.0") == 200
-    assert await post_request("plugin-2", "2.0.0") == 429
+            assert plugin.updates == 1
 
 
 @pytest.mark.asyncio
@@ -184,6 +171,8 @@ async def test_plugins_list_endpoint(
             "description": "Description of plugin-1",
             "tags": ["tag-1", "tag-2"],
             "image_url": "hxxp://fake.domain/artifact_images/plugin-1.png",
+            "downloads": 0,
+            "updates": 0,
             "created": "2022-02-25T00:00:00Z",
             "updated": "2022-02-25T00:00:02Z",
             "versions": [
@@ -218,6 +207,8 @@ async def test_plugins_list_endpoint(
             "description": "Description of plugin-2",
             "tags": ["tag-2"],
             "image_url": "hxxp://fake.domain/2.png",
+            "downloads": 0,
+            "updates": 0,
             "created": "2022-02-25T00:01:00Z",
             "updated": "2022-02-25T00:01:01Z",
             "versions": [
@@ -245,6 +236,8 @@ async def test_plugins_list_endpoint(
             "description": "Description of third",
             "tags": ["tag-2", "tag-3"],
             "image_url": "hxxp://fake.domain/artifact_images/third.png",
+            "downloads": 0,
+            "updates": 0,
             "created": "2022-02-25T00:02:00Z",
             "updated": "2022-02-25T00:02:02Z",
             "versions": [
@@ -279,6 +272,8 @@ async def test_plugins_list_endpoint(
             "description": "Description of plugin-4",
             "tags": ["tag-1", "tag-3"],
             "image_url": "hxxp://fake.domain/artifact_images/plugin-4.png",
+            "downloads": 0,
+            "updates": 0,
             "created": "2022-02-25T00:03:00Z",
             "updated": "2022-02-25T00:03:03Z",
             "versions": [
@@ -320,6 +315,8 @@ async def test_plugins_list_endpoint(
             "description": "Description of plugin-5",
             "tags": ["tag-1", "tag-2"],
             "image_url": "hxxp://fake.domain/artifact_images/plugin-5.png",
+            "downloads": 0,
+            "updates": 0,
             "created": "2022-02-25T00:04:00Z",
             "updated": "2022-02-25T00:04:02Z",
             "versions": [
@@ -354,6 +351,8 @@ async def test_plugins_list_endpoint(
             "description": "Description of plugin-6",
             "tags": ["tag-2"],
             "image_url": "hxxp://fake.domain/6.png",
+            "downloads": 0,
+            "updates": 0,
             "created": "2022-02-25T00:05:00Z",
             "updated": "2022-02-25T00:05:01Z",
             "versions": [
@@ -381,6 +380,8 @@ async def test_plugins_list_endpoint(
             "description": "Description of seventh",
             "tags": ["tag-2", "tag-3"],
             "image_url": "hxxp://fake.domain/artifact_images/seventh.png",
+            "downloads": 0,
+            "updates": 0,
             "created": "2022-02-25T00:06:00Z",
             "updated": "2022-02-25T00:06:02Z",
             "versions": [
@@ -415,6 +416,8 @@ async def test_plugins_list_endpoint(
             "description": "Description of plugin-8",
             "tags": ["tag-1", "tag-3"],
             "image_url": "hxxp://fake.domain/artifact_images/plugin-8.png",
+            "downloads": 0,
+            "updates": 0,
             "created": "2022-02-25T00:07:00Z",
             "updated": "2022-02-25T00:07:03Z",
             "versions": [

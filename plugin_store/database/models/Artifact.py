@@ -42,6 +42,13 @@ class Artifact(Base):
     )
     visible: bool = Column(Boolean, default=True)
 
+    downloads: int = column_property(
+        select(func.sum(Version.downloads)).where(Version.artifact_id == id).correlate_except(Version).scalar_subquery()
+    )
+    updates: int = column_property(
+        select(func.sum(Version.updates)).where(Version.artifact_id == id).correlate_except(Version).scalar_subquery()
+    )
+
     created: datetime = column_property(
         select(func.min(Version.created)).where(Version.artifact_id == id).correlate_except(Version).scalar_subquery()
     )

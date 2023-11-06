@@ -86,5 +86,7 @@ class BasePluginResponse(BasePlugin):
     versions: list[PluginVersionResponse]  # type: ignore[assignment]
 
     image_url: str
+    downloads: Optional[int]
+    updates: Optional[int]
     created: Optional[datetime]
     updated: Optional[datetime]
