@@ -13,7 +13,7 @@ from sqlalchemy import asc, desc
 from sqlalchemy.exc import NoResultFound, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.sql import collate, delete, select
+from sqlalchemy.sql import collate, delete, select, update
 
 from constants import SortDirection, SortType
 
@@ -172,10 +172,13 @@ class Database:
             direction = asc
         else:
             direction = desc
+
         if sort_by == SortType.name:
             statement = statement.order_by(direction(collate(Artifact.name, "NOCASE")))
-        if sort_by == SortType.date:
+        elif sort_by == SortType.date:
             statement = statement.order_by(direction(Artifact.created))
+        elif sort_by == SortType.downloads:
+            statement = statement.order_by(direction(Artifact.downloads))
 
         result = (await session.execute(statement)).scalars().all()
         return result or []
@@ -196,3 +199,19 @@ class Database:
         await session.execute(delete(Version).where(Version.artifact_id == id))
         await session.execute(delete(Artifact).where(Artifact.id == id))
         return await session.commit()
+
+    async def increment_installs(
+        self, session: "AsyncSession", plugin_name: str, version_name: str, isUpdate: bool
+    ) -> bool:
+        statement = update(Version)
+        if isUpdate:
+            statement = statement.values(updates=Version.updates + 1)
+        else:
+            statement = statement.values(downloads=Version.downloads + 1)
+        plugin_id = (await session.execute(select(Artifact.id).where(Artifact.name == plugin_name))).scalar()
+        if plugin_id is None:
+            return False
+        r = await session.execute(statement.where((Version.name == version_name) & (Version.artifact_id == plugin_id)))
+        await session.commit()
+        # if rowcount is zero then the version wasn't found
+        return r.rowcount == 1  # type: ignore[attr-defined]

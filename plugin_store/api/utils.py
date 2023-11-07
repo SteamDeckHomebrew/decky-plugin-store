@@ -1,8 +1,15 @@
 import inspect
 from typing import Any
 
-from fastapi import File, Form, UploadFile
+from fastapi import File, Form, Request, UploadFile
 from fastapi.params import Depends
+
+
+def getIpHash(request: Request):
+    ip = request.headers.get("cf-connecting-ip")
+    if ip is None:
+        ip = request.client.host  # type: ignore [union-attr]
+    return hash(ip)
 
 
 def form_body(cls):

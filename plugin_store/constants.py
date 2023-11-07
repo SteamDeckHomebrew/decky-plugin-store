@@ -16,3 +16,4 @@ class SortDirection(Enum):
 class SortType(Enum):
     name = "name"
     date = "date"
+    downloads = "downloads"
