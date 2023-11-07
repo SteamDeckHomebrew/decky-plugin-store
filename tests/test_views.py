@@ -638,6 +638,8 @@ async def test_submit_endpoint(
             "updated": resulting_updated_time,
             "versions": resulting_versions,
             "visible": is_visible,
+            "downloads": 0,
+            "updates": 0,
         }
 
         plugin = await db_fixture.get_plugin_by_id(db_fixture.session, plugin_id)
@@ -784,6 +786,8 @@ async def test_update_endpoint(
             for version, date in zip(reversed(with_versions), resulting_versions_dates)
         ],
         "visible": make_visible,
+        "downloads": 0,
+        "updates": 0,
     }
 
     plugin = await seed_db.get_plugin_by_id(seed_db.session, plugin_id)
