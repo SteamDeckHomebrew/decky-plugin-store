@@ -21,6 +21,6 @@ services:
     image: redis:latest
     restart: unless-stopped
     ports:
-      - 6379:6379
+        - "6379:6379"
     environment:
-      - REDIS_PORT=6379
+        - REDIS_PORT=6379
