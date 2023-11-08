@@ -21,6 +21,8 @@ services:
     restart: unless-stopped
     ports:
       - 6379:6379
+    networks:
+        - plugins-network
     environment:
       - REDIS_PORT=6379
     
