@@ -17,7 +17,7 @@ services:
     restart: unless-stopped
 
   redis_db:
-    image: redis:3.2.8
+    image: redis:latest
     restart: unless-stopped
     ports:
       - 6379:6379
