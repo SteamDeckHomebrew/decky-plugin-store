@@ -43,7 +43,7 @@ def run_migrations_offline() -> None:
 
     """
     context.configure(
-        url=f"sqlite+aiosqlite:///{getenv('DB_PATH')}",
+        url=getenv("DB_URL"),
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -68,7 +68,7 @@ async def run_migrations_online() -> None:
 
     """
     connectable = create_async_engine(
-        f"sqlite+aiosqlite:///{getenv('DB_PATH')}",
+        getenv("DB_URL"),
         poolclass=pool.NullPool,
         future=True,
     )
