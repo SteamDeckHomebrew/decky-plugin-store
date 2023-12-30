@@ -12,13 +12,12 @@ services:
         - B2_BUCKET_ID
     networks:
         - plugins-network
+        - default
     restart: unless-stopped
 
   redis_db:
     image: redis:latest
     restart: unless-stopped
-    networks:
-        - plugins-network
     environment:
         - REDIS_PORT=6379
 
@@ -29,8 +28,6 @@ services:
       - POSTGRES_DB=decky
       - POSTGRES_USER=decky
       - POSTGRES_PASSWORD
-    networks:
-        - plugins-network
     volumes: 
       - ${DB_PATH}:/var/lib/postgresql/data
 
