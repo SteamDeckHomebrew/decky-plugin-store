@@ -70,7 +70,7 @@ async def client_auth(client_unauth: "AsyncClient") -> "AsyncClient":
 @pytest.fixture()
 def db_engine():
     return create_async_engine(
-        "sqlite+aiosqlite:///{}".format(getenv("DB_PATH")),
+        getenv("DB_URL"),
         pool_pre_ping=True,
         # echo=settings.ECHO_SQL,
     )

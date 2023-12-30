@@ -12,9 +12,9 @@ packages = []
 
 [tool.poetry.dependencies]
 python = "^3.9"
-aiohttp = "^3.8.1"
+aiohttp = "^3.9.1"
 alembic = "^1.8.1"
-aiosqlite = "^0.17.0"  # for async sqlite in sqlalchemy
+aiosqlite = "^0.17.0" # for async sqlite in sqlalchemy
 asgiref = "^3.5.2"
 discord-webhook = {version = "^0.17.0", extras = ["async"]}
 fastapi = "^0.85.1"
@@ -23,6 +23,7 @@ sqlalchemy = "^1.4.41"
 uvicorn = "^0.20.0"
 limits = {extras = ["redis"], version = "^3.6.0"}
 redis = "^5.0.1"
+asyncpg = "^0.29.0" # for async postgres in sqalchemy
 
 [tool.poetry.group.dev.dependencies]
 black = "^22.8.0"
@@ -83,6 +84,6 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 pythonpath = "/app/plugin_store"
 env = [
-    "DB_PATH=:memory:",
+    "DB_URL=sqlite+aiosqlite:///:memory:",
     "SUBMIT_AUTH_KEY=deadbeef",
 ]

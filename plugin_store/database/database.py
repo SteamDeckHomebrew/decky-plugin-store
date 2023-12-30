@@ -29,7 +29,7 @@ UTC = ZoneInfo("UTC")
 
 
 async_engine = create_async_engine(
-    f"sqlite+aiosqlite:///{getenv('DB_PATH')}",
+    getenv("DB_URL"),
     pool_pre_ping=True,
     # echo=settings.ECHO_SQL,
 )
