@@ -29,6 +29,11 @@ jobs:
     - name: Setup Docker buildx
       uses: docker/setup-buildx-action@79abd3f86f79a9d68a23c75a09a9a85889262adf
 
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
     # Login against a Docker registry except on PR
     # https://github.com/docker/login-action
     - name: Log into registry ${{ env.REGISTRY }}
@@ -60,6 +65,7 @@ jobs:
         context: .
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ github.event.inputs.tag || steps.meta.outputs.tags }}
+        platforms: linux/amd64,linux/arm64
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
