@@ -32,7 +32,7 @@ services:
     networks:
         - plugins-network
     volumes: 
-      - ~/database/store-postgres:/var/lib/postgresql/data
+      - ${DB_PATH}:/var/lib/postgresql/data
 
 networks:
   plugins-network:
