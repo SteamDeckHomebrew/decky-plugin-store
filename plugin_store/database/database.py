@@ -179,6 +179,9 @@ class Database:
             statement = statement.order_by(direction(Artifact.created))
         elif sort_by == SortType.downloads:
             statement = statement.order_by(direction(Artifact.downloads))
+        else:
+            statement = statement.order_by(direction(Artifact.id))
+
 
         result = (await session.execute(statement)).scalars().all()
         return result or []

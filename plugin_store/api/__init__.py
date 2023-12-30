@@ -72,7 +72,7 @@ async def plugins_list(
     tags: list[str] = fastapi.Query(default=[]),
     hidden: bool = False,
     sort_by: Optional[SortType] = None,
-    sort_direction: SortDirection = SortDirection.desc,
+    sort_direction: SortDirection = SortDirection.asc,
     db: "Database" = Depends(database),
 ):
     tags = list(filter(None, reduce(add, (el.split(",") for el in tags), [])))
