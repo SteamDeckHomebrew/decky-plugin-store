@@ -1244,20 +1244,21 @@ testing = ["argcomplete", "attrs (>=19.2.0)", "hypothesis (>=3.56)", "mock", "no
 
 [[package]]
 name = "pytest-asyncio"
-version = "0.19.0"
+version = "0.23.2"
 description = "Pytest support for asyncio"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "pytest-asyncio-0.19.0.tar.gz", hash = "sha256:ac4ebf3b6207259750bc32f4c1d8fcd7e79739edbc67ad0c58dd150b1d072fed"},
-    {file = "pytest_asyncio-0.19.0-py3-none-any.whl", hash = "sha256:7a97e37cfe1ed296e2e84941384bdd37c376453912d397ed39293e0916f521fa"},
+    {file = "pytest-asyncio-0.23.2.tar.gz", hash = "sha256:c16052382554c7b22d48782ab3438d5b10f8cf7a4bdcae7f0f67f097d95beecc"},
+    {file = "pytest_asyncio-0.23.2-py3-none-any.whl", hash = "sha256:ea9021364e32d58f0be43b91c6233fb8d2224ccef2398d6837559e587682808f"},
 ]
 
 [package.dependencies]
-pytest = ">=6.1.0"
+pytest = ">=7.0.0"
 
 [package.extras]
-testing = ["coverage (>=6.2)", "flaky (>=3.5.0)", "hypothesis (>=5.7.1)", "mypy (>=0.931)", "pytest-trio (>=0.7.0)"]
+docs = ["sphinx (>=5.3)", "sphinx-rtd-theme (>=1.0)"]
+testing = ["coverage (>=6.2)", "hypothesis (>=5.7.1)"]
 
 [[package]]
 name = "pytest-env"
@@ -1273,19 +1274,19 @@ files = [
 pytest = ">=2.6.0"
 
 [[package]]
-name = "pytest-freezegun"
-version = "0.4.2"
-description = "Wrap tests with fixtures in freeze_time"
+name = "pytest-freezer"
+version = "0.4.8"
+description = "Pytest plugin providing a fixture interface for spulec/freezegun"
 optional = false
-python-versions = "*"
+python-versions = ">= 3.6"
 files = [
-    {file = "pytest-freezegun-0.4.2.zip", hash = "sha256:19c82d5633751bf3ec92caa481fb5cffaac1787bd485f0df6436fd6242176949"},
-    {file = "pytest_freezegun-0.4.2-py2.py3-none-any.whl", hash = "sha256:5318a6bfb8ba4b709c8471c94d0033113877b3ee02da5bfcd917c1889cde99a7"},
+    {file = "pytest_freezer-0.4.8-py3-none-any.whl", hash = "sha256:644ce7ddb8ba52b92a1df0a80a699bad2b93514c55cf92e9f2517b68ebe74814"},
+    {file = "pytest_freezer-0.4.8.tar.gz", hash = "sha256:8ee2f724b3ff3540523fa355958a22e6f4c1c819928b78a7a183ae4248ce6ee6"},
 ]
 
 [package.dependencies]
-freezegun = ">0.3"
-pytest = ">=3.0.0"
+freezegun = ">=1.0"
+pytest = ">=3.6"
 
 [[package]]
 name = "pytest-lazy-fixture"
@@ -1780,4 +1781,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "11c1c038cbdac6ba7696c2025d45d017534a403026180d2e58cb13359c8cd9e8"
+content-hash = "675303d86f036b56549149c9122aeb3a74ca49f3e48aa665acda227c7978cb51"
