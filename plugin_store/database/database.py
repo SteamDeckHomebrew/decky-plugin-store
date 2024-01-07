@@ -155,7 +155,7 @@ class Database:
         tags: "Iterable[str] | None" = None,
         include_hidden: "bool" = False,
         sort_by: Optional[SortType] = None,
-        sort_direction: SortDirection = SortDirection.desc,
+        sort_direction: SortDirection = SortDirection.DESC,
         limit: int = 50,
         page: int = 0,
     ) -> list["Artifact"]:
@@ -168,20 +168,19 @@ class Database:
         if not include_hidden:
             statement = statement.where(Artifact.visible.is_(True))
 
-        if sort_direction == SortDirection.asc:
+        if sort_direction == SortDirection.ASC:
             direction = asc
         else:
             direction = desc
 
-        if sort_by == SortType.name:
+        if sort_by == SortType.NAME:
             statement = statement.order_by(direction(collate(Artifact.name, "NOCASE")))
-        elif sort_by == SortType.date:
+        elif sort_by == SortType.DATE:
             statement = statement.order_by(direction(Artifact.created))
-        elif sort_by == SortType.downloads:
+        elif sort_by == SortType.DOWNLOADS:
             statement = statement.order_by(direction(Artifact.downloads))
         else:
             statement = statement.order_by(direction(Artifact.id))
-
 
         result = (await session.execute(statement)).scalars().all()
         return result or []
