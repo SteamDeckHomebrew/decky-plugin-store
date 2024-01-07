@@ -38,7 +38,7 @@ async def _b2_upload(filename: str, binary: "bytes", mime_type: str = "b2/x-auto
             headers={"Authorization": f"Basic: {b64encode(auth_str).decode('utf-8')}"},
         ) as res:
             if not res.status == 200:
-                getLogger().error("B2 LOGIN ERROR " + await res.read())
+                getLogger().error(f"B2 LOGIN ERROR {await res.read()!r}")
                 return
             res_data = await res.json()
 

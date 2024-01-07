@@ -69,7 +69,7 @@ max-line-length = 120
 line_length = 120
 order_by_type = false
 profile = "black"
-src_paths = ["plugin_store"]
+src_paths = ["plugin_store", "tests"]
 
 [tool.mypy]
 plugins = [
