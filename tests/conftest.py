@@ -1,8 +1,6 @@
-import random
-from hashlib import sha256
+from datetime import datetime, UTC
 from os import getenv
 from pathlib import Path
-from string import ascii_lowercase
 from typing import TYPE_CHECKING
 
 import pytest
@@ -16,12 +14,12 @@ import main
 from api import database as db_dependency
 from database.database import Database
 from database.models import Base
+from db_helpers import FakePluginGenerator
 
 if TYPE_CHECKING:
     from typing import AsyncIterator
 
     from fastapi import FastAPI
-    from freezegun.api import FrozenDateTimeFactory
 
 APP_PATH = Path("./plugin_store").absolute()
 TESTS_PATH = Path(__file__).expanduser().resolve().parent
@@ -92,90 +90,25 @@ async def db(_migrate_db: None, db_sessionmaker: sessionmaker, mocker: "MockFixt
     return Database(db_sessionmaker(), lock=mocker.MagicMock())
 
 
-class FakePluginGenerator:
-    def __init__(self, db: "Database", session: "AsyncSession", freezer: "FrozenDateTimeFactory"):
-        self.created_plugins_count = 0
-        self.db = db
-        self.session = session
-        self.freezer = freezer
-
-    async def create(
-        self,
-        name: "str | None" = None,
-        author: "str | None" = None,
-        description: "str | None" = None,
-        image: "str | None" = None,
-        tags: "int | list[str] | None" = None,
-        versions: "int | list[str] | list[dict] | None" = None,
-        visible: bool = True,
-    ):
-        if not name:
-            name = "".join(random.choices(ascii_lowercase, k=12))
-
-        if not author:
-            author = f"author-of-{name}"
-
-        if not description:
-            description = f"Description of {name}"
-
-        if tags is None:
-            tags = random.randint(1, 4)
-
-        if isinstance(tags, int):
-            tags = [f"tag-{i}" for i in range(tags)]
-
-        plugin = await self.db.insert_artifact(
-            session=self.session,
-            name=name,
-            author=author,
-            description=description,
-            image_path=image,
-            tags=tags,
-            visible=visible,
-        )
-
-        if versions is None:
-            versions = random.randint(1, 4)
-
-        if isinstance(versions, int):
-            versions = [f"0.{i}.0" for i in range(versions)]
-
-        for version in versions:
-            if isinstance(version, str):
-                version = {"name": version, "hash": sha256(f"{plugin.id}-{version}".encode()).hexdigest()}
-
-            await self.db.insert_version(self.session, plugin.id, **version)
-            self.freezer.tick()
-
-        self.created_plugins_count += 1
-
-
 @pytest_asyncio.fixture()
-async def seed_db(db: "Database", db_sessionmaker: "sessionmaker", freezer: "FrozenDateTimeFactory") -> "Database":
+async def seed_db(db: "Database", db_sessionmaker: "sessionmaker") -> "Database":
     session = db_sessionmaker()
-    generator = FakePluginGenerator(db, session, freezer)
-    freezer.move_to("2022-02-25T00:00:00Z")
-    await generator.create("plugin-1", tags=["tag-1", "tag-2"], versions=["0.1.0", "0.2.0", "1.0.0"])
-    freezer.move_to("2022-02-25T00:01:00Z")
-    await generator.create("plugin-2", image="2.png", tags=["tag-2"], versions=["1.1.0", "2.0.0"])
-    freezer.move_to("2022-02-25T00:02:00Z")
+    generator = FakePluginGenerator(session, datetime(2022, 2, 25, 0, 0, 0, tzinfo=UTC))
+    await generator.create(tags=["tag-1", "tag-2"], versions=["0.1.0", "0.2.0", "1.0.0"])
+    generator.date = datetime(2022, 2, 25, 0, 1, 0, 0, tzinfo=UTC)
+    await generator.create(image="2.png", tags=["tag-2"], versions=["1.1.0", "2.0.0"])
+    generator.date = datetime(2022, 2, 25, 0, 2, 0, 0, tzinfo=UTC)
     await generator.create("third", tags=["tag-2", "tag-3"], versions=["3.0.0", "3.1.0", "3.2.0"])
-    freezer.move_to("2022-02-25T00:03:00Z")
-    await generator.create("plugin-4", tags=["tag-1", "tag-3"], versions=["1.0.0", "2.0.0", "3.0.0", "4.0.0"])
-    freezer.move_to("2022-02-25T00:04:00Z")
-    await generator.create("plugin-5", tags=["tag-1", "tag-2"], versions=["0.1.0", "0.2.0", "1.0.0"], visible=False)
-    freezer.move_to("2022-02-25T00:05:00Z")
-    await generator.create("plugin-6", image="6.png", tags=["tag-2"], versions=["1.1.0", "2.0.0"], visible=False)
-    freezer.move_to("2022-02-25T00:06:00Z")
+    generator.date = datetime(2022, 2, 25, 0, 3, 0, 0, tzinfo=UTC)
+    await generator.create(tags=["tag-1", "tag-3"], versions=["1.0.0", "2.0.0", "3.0.0", "4.0.0"])
+    generator.date = datetime(2022, 2, 25, 0, 4, 0, 0, tzinfo=UTC)
+    await generator.create(tags=["tag-1", "tag-2"], versions=["0.1.0", "0.2.0", "1.0.0"], visible=False)
+    generator.date = datetime(2022, 2, 25, 0, 5, 0, 0, tzinfo=UTC)
+    await generator.create(image="6.png", tags=["tag-2"], versions=["1.1.0", "2.0.0"], visible=False)
+    generator.date = datetime(2022, 2, 25, 0, 6, 0, 0, tzinfo=UTC)
     await generator.create("seventh", tags=["tag-2", "tag-3"], versions=["3.0.0", "3.1.0", "3.2.0"], visible=False)
-    freezer.move_to("2022-02-25T00:07:00Z")
-    await generator.create(
-        "plugin-8",
-        tags=["tag-1", "tag-3"],
-        versions=["1.0.0", "2.0.0", "3.0.0", "4.0.0"],
-        visible=False,
-    )
-    # session.commit()
+    generator.date = datetime(2022, 2, 25, 0, 7, 0, 0, tzinfo=UTC)
+    await generator.create(tags=["tag-1", "tag-3"], versions=["1.0.0", "2.0.0", "3.0.0", "4.0.0"], visible=False)
 
     return db
 
