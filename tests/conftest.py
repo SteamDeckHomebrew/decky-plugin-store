@@ -1,4 +1,3 @@
-from datetime import datetime, UTC
 from os import getenv
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -7,14 +6,18 @@ import pytest
 import pytest_asyncio
 from httpx import AsyncClient
 from pytest_mock import MockFixture
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 import main
 from api import database as db_dependency
 from database.database import Database
-from database.models import Base
-from db_helpers import FakePluginGenerator
+from db_helpers import (
+    create_test_db_engine,
+    create_test_db_sessionmaker,
+    prepare_test_db,
+    prepare_transactioned_db_session,
+)
 
 if TYPE_CHECKING:
     from typing import AsyncIterator
@@ -33,7 +36,8 @@ def mock_external_services(session_mocker: "MockFixture"):
         "cdn.fetch_image",
         return_value=((DUMMY_DATA_PATH / "plugin-image.png").read_bytes(), "image/png"),
     )
-    session_mocker.patch("discord.AsyncDiscordWebhook", new=session_mocker.AsyncMock)
+    discord_mock = session_mocker.patch("discord.AsyncDiscordWebhook", new=session_mocker.AsyncMock)
+    discord_mock.add_embed = session_mocker.Mock()
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -45,8 +49,7 @@ def mock_constants(session_mocker: "MockFixture"):
 
 
 @pytest.fixture()
-def plugin_store(db: "Database") -> "FastAPI":
-    main.app.dependency_overrides[db_dependency] = lambda: db
+def plugin_store() -> "FastAPI":
     return main.app
 
 
@@ -65,52 +68,30 @@ async def client_auth(client_unauth: "AsyncClient") -> "AsyncClient":
     return client_unauth
 
 
-@pytest.fixture()
-def db_engine():
-    return create_async_engine(
-        getenv("DB_URL"),
-        pool_pre_ping=True,
-        # echo=settings.ECHO_SQL,
-    )
+@pytest_asyncio.fixture(scope="session")
+async def seed_db_engine() -> tuple["AsyncEngine", "sessionmaker"]:
+    engine = create_test_db_engine()
+    db_sessionmaker = create_test_db_sessionmaker(engine)
+    await prepare_test_db(engine, db_sessionmaker, True)
+    return engine, db_sessionmaker
 
 
-@pytest.fixture()
-def db_sessionmaker(db_engine):
-    return sessionmaker(bind=db_engine, autoflush=False, future=True, expire_on_commit=False, class_=AsyncSession)
-
-
-@pytest_asyncio.fixture()
-async def _migrate_db(db_engine):
-    async with db_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+@pytest.fixture(scope="session")
+def seed_db_sessionmaker(seed_db_engine: tuple["AsyncEngine", "sessionmaker"]) -> "sessionmaker":
+    return seed_db_engine[1]
 
 
 @pytest_asyncio.fixture()
-async def db(_migrate_db: None, db_sessionmaker: sessionmaker, mocker: "MockFixture") -> "Database":
-    return Database(db_sessionmaker(), lock=mocker.MagicMock())
+async def seed_db_session(seed_db_engine: tuple["AsyncEngine", "sessionmaker"]) -> "AsyncSession":
+    async with prepare_transactioned_db_session(*seed_db_engine) as session:
+        yield session
 
 
 @pytest_asyncio.fixture()
-async def seed_db(db: "Database", db_sessionmaker: "sessionmaker") -> "Database":
-    session = db_sessionmaker()
-    generator = FakePluginGenerator(session, datetime(2022, 2, 25, 0, 0, 0, tzinfo=UTC))
-    await generator.create(tags=["tag-1", "tag-2"], versions=["0.1.0", "0.2.0", "1.0.0"])
-    generator.date = datetime(2022, 2, 25, 0, 1, 0, 0, tzinfo=UTC)
-    await generator.create(image="2.png", tags=["tag-2"], versions=["1.1.0", "2.0.0"])
-    generator.date = datetime(2022, 2, 25, 0, 2, 0, 0, tzinfo=UTC)
-    await generator.create("third", tags=["tag-2", "tag-3"], versions=["3.0.0", "3.1.0", "3.2.0"])
-    generator.date = datetime(2022, 2, 25, 0, 3, 0, 0, tzinfo=UTC)
-    await generator.create(tags=["tag-1", "tag-3"], versions=["1.0.0", "2.0.0", "3.0.0", "4.0.0"])
-    generator.date = datetime(2022, 2, 25, 0, 4, 0, 0, tzinfo=UTC)
-    await generator.create(tags=["tag-1", "tag-2"], versions=["0.1.0", "0.2.0", "1.0.0"], visible=False)
-    generator.date = datetime(2022, 2, 25, 0, 5, 0, 0, tzinfo=UTC)
-    await generator.create(image="6.png", tags=["tag-2"], versions=["1.1.0", "2.0.0"], visible=False)
-    generator.date = datetime(2022, 2, 25, 0, 6, 0, 0, tzinfo=UTC)
-    await generator.create("seventh", tags=["tag-2", "tag-3"], versions=["3.0.0", "3.1.0", "3.2.0"], visible=False)
-    generator.date = datetime(2022, 2, 25, 0, 7, 0, 0, tzinfo=UTC)
-    await generator.create(tags=["tag-1", "tag-3"], versions=["1.0.0", "2.0.0", "3.0.0", "4.0.0"], visible=False)
-
-    return db
+async def seed_db(plugin_store: "FastAPI", seed_db_session: "AsyncSession", mocker: "MockFixture") -> "Database":
+    database = Database(seed_db_session, lock=mocker.MagicMock())
+    main.app.dependency_overrides[db_dependency] = lambda: database
+    return database
 
 
 @pytest.fixture()

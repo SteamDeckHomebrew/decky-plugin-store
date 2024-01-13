@@ -491,9 +491,9 @@ async def test_submit_endpoint_requires_auth(client_unauth: "AsyncClient"):
     ),
     [
         (
-            lazy_fixture("db"),
+            lazy_fixture("seed_db"),
             "new-plugin",
-            1,
+            9,
             "new-plugin",
             status.HTTP_201_CREATED,
             [
@@ -664,9 +664,9 @@ async def test_submit_endpoint(
             assert actual.downloads == 0
             assert actual.updates == 0
 
-        statement = select(Tag).where(Tag.tag == "tag-1").with_only_columns([func.count()]).order_by(None)
+        statement = select(Tag).where(Tag.tag == "tag-1").with_only_columns(func.count()).order_by(None)
         assert (await db_fixture.session.execute(statement)).scalar() == 1
-        statement = select(Tag).where(Tag.tag == "new-tag-2").with_only_columns([func.count()]).order_by(None)
+        statement = select(Tag).where(Tag.tag == "new-tag-2").with_only_columns(func.count()).order_by(None)
         assert (await db_fixture.session.execute(statement)).scalar() == 1
 
         list_response = await client_auth.get("/plugins")
@@ -813,9 +813,9 @@ async def test_update_endpoint(
         assert actual.hash == expected["hash"]
         assert actual.created.isoformat().replace("+00:00", "Z") == expected["created"]  # type:ignore[union-attr]
 
-    statement = select(Tag).where(Tag.tag == "new-tag-1").with_only_columns([func.count()]).order_by(None)
+    statement = select(Tag).where(Tag.tag == "new-tag-1").with_only_columns(func.count()).order_by(None)
     assert (await seed_db.session.execute(statement)).scalar() == 1
-    statement = select(Tag).where(Tag.tag == "tag-2").with_only_columns([func.count()]).order_by(None)
+    statement = select(Tag).where(Tag.tag == "tag-2").with_only_columns(func.count()).order_by(None)
     assert (await seed_db.session.execute(statement)).scalar() == 1
 
 
