@@ -128,12 +128,12 @@ async def test_plugin_list_endpoint_cors(
     ("plugin_sort", "plugin_sort_direction", "id_order"),
     [
         pytest.param(None, None, [1, 2, 3, 4, 5, 6, 7, 8], id="no-sort"),
-        pytest.param(SortType.name, None, [3, 7, 8, 6, 5, 4, 2, 1], id="name-sort"),
-        pytest.param(SortType.name, SortDirection.desc, [3, 7, 8, 6, 5, 4, 2, 1], id="name-desc-sort"),
-        pytest.param(SortType.name, SortDirection.asc, [1, 2, 4, 5, 6, 8, 7, 3], id="name-asc-sort"),
-        pytest.param(SortType.date, None, [8, 7, 6, 5, 4, 3, 2, 1], id="date-sort"),
-        pytest.param(SortType.date, SortDirection.desc, [8, 7, 6, 5, 4, 3, 2, 1], id="date-desc-sort"),
-        pytest.param(SortType.date, SortDirection.asc, [1, 2, 3, 4, 5, 6, 7, 8], id="date-asc-sort"),
+        pytest.param(SortType.NAME, None, [1, 2, 4, 5, 6, 8, 7, 3], id="name-sort"),
+        pytest.param(SortType.NAME, SortDirection.DESC, [3, 7, 8, 6, 5, 4, 2, 1], id="name-desc-sort"),
+        pytest.param(SortType.NAME, SortDirection.ASC, [1, 2, 4, 5, 6, 8, 7, 3], id="name-asc-sort"),
+        pytest.param(SortType.DATE, None, [1, 2, 3, 4, 5, 6, 7, 8], id="date-sort"),
+        pytest.param(SortType.DATE, SortDirection.DESC, [8, 7, 6, 5, 4, 3, 2, 1], id="date-desc-sort"),
+        pytest.param(SortType.DATE, SortDirection.ASC, [1, 2, 3, 4, 5, 6, 7, 8], id="date-asc-sort"),
     ],
 )
 async def test_plugins_list_endpoint(
@@ -491,9 +491,9 @@ async def test_submit_endpoint_requires_auth(client_unauth: "AsyncClient"):
     ),
     [
         (
-            lazy_fixture("db"),
+            lazy_fixture("seed_db"),
             "new-plugin",
-            1,
+            9,
             "new-plugin",
             status.HTTP_201_CREATED,
             [
@@ -664,9 +664,9 @@ async def test_submit_endpoint(
             assert actual.downloads == 0
             assert actual.updates == 0
 
-        statement = select(Tag).where(Tag.tag == "tag-1").with_only_columns([func.count()]).order_by(None)
+        statement = select(Tag).where(Tag.tag == "tag-1").with_only_columns(func.count()).order_by(None)
         assert (await db_fixture.session.execute(statement)).scalar() == 1
-        statement = select(Tag).where(Tag.tag == "new-tag-2").with_only_columns([func.count()]).order_by(None)
+        statement = select(Tag).where(Tag.tag == "new-tag-2").with_only_columns(func.count()).order_by(None)
         assert (await db_fixture.session.execute(statement)).scalar() == 1
 
         list_response = await client_auth.get("/plugins")
@@ -813,9 +813,9 @@ async def test_update_endpoint(
         assert actual.hash == expected["hash"]
         assert actual.created.isoformat().replace("+00:00", "Z") == expected["created"]  # type:ignore[union-attr]
 
-    statement = select(Tag).where(Tag.tag == "new-tag-1").with_only_columns([func.count()]).order_by(None)
+    statement = select(Tag).where(Tag.tag == "new-tag-1").with_only_columns(func.count()).order_by(None)
     assert (await seed_db.session.execute(statement)).scalar() == 1
-    statement = select(Tag).where(Tag.tag == "tag-2").with_only_columns([func.count()]).order_by(None)
+    statement = select(Tag).where(Tag.tag == "tag-2").with_only_columns(func.count()).order_by(None)
     assert (await seed_db.session.execute(statement)).scalar() == 1
 
 

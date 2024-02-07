@@ -17,6 +17,7 @@ class TZDateTime(TypeDecorator):
     """
 
     impl = DateTime(timezone=True)
+    cache_ok = True
 
     def process_bind_param(self, value: "datetime | None", dialect: "Dialect"):
         if isinstance(value, datetime):

@@ -9,11 +9,11 @@ CDN_ERROR_RETRY_TIMES = 5
 
 
 class SortDirection(Enum):
-    desc = "desc"
-    asc = "asc"
+    DESC = "desc"
+    ASC = "asc"
 
 
 class SortType(Enum):
-    name = "name"
-    date = "date"
-    downloads = "downloads"
+    NAME = "name"
+    DATE = "date"
+    DOWNLOADS = "downloads"

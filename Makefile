@@ -46,4 +46,4 @@ deps/upgrade:
 	poetry lock
 
 test:
-	pytest ./tests
+	SQLALCHEMY_WARN_20=1 pytest ./tests

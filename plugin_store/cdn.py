@@ -1,12 +1,13 @@
 from asyncio import sleep
 from base64 import b64encode
 from hashlib import sha1, sha256
+from logging import getLogger
 from os import getenv
 from typing import TYPE_CHECKING
 from urllib.parse import quote
-from logging import getLogger
 
 from aiohttp import ClientSession
+
 from constants import CDN_ERROR_RETRY_TIMES
 
 if TYPE_CHECKING:
@@ -20,8 +21,10 @@ IMAGE_TYPES = {
     "image/avif": ".avif",
 }
 
+
 class B2UploadError(Exception):
     pass
+
 
 def construct_image_path(plugin_name: str, file_hash: str, mime_type: str) -> str:
     return f"artifact_images/{quote(plugin_name)}-{file_hash}{IMAGE_TYPES[mime_type]}"
@@ -35,7 +38,7 @@ async def _b2_upload(filename: str, binary: "bytes", mime_type: str = "b2/x-auto
             headers={"Authorization": f"Basic: {b64encode(auth_str).decode('utf-8')}"},
         ) as res:
             if not res.status == 200:
-                getLogger().error("B2 LOGIN ERROR " + await res.read())
+                getLogger().error(f"B2 LOGIN ERROR {await res.read()!r}")
                 return
             res_data = await res.json()
 
@@ -65,13 +68,16 @@ async def _b2_upload(filename: str, binary: "bytes", mime_type: str = "b2/x-auto
                     return t
                 raise B2UploadError(t)
 
+
 async def b2_upload(filename: str, binary: "bytes", mime_type: str = "b2/x-auto"):
     attempt = 1
     while True:
         try:
             return await _b2_upload(filename, binary, mime_type)
         except B2UploadError as e:
-            getLogger().error(f"B2 Upload Failed: {e}. Retrying in {attempt * 5} seconds (Attempt: {attempt}/{CDN_ERROR_RETRY_TIMES})")
+            getLogger().error(
+                f"B2 Upload Failed: {e}. Retrying in {attempt * 5} seconds (Attempt: {attempt}/{CDN_ERROR_RETRY_TIMES})"
+            )
             await sleep(attempt * 5)
             attempt += 1
             if attempt == CDN_ERROR_RETRY_TIMES + 1:

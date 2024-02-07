@@ -20,7 +20,7 @@ depends_on = None
 def upgrade() -> None:
 
     conn = op.get_bind()
-    statement = sa.select(Tag.tag, sa.func.group_concat(Tag.id, ",").label("ids")).group_by(Tag.tag)
+    statement = sa.select(Tag.tag, sa.func.string_agg(str(Tag.id), ",").label("ids")).group_by(Tag.tag)
     tags = conn.execute(statement)
     replacements = {(ids[0], tag.tag): ids[1:] for tag in tags if len(ids := sorted(map(int, tag.ids.split(",")))) > 1}
     for (dest_id, tag), src_ids in replacements.items():

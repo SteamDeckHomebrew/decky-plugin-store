@@ -17,12 +17,15 @@ depends_on = None
 
 def upgrade() -> None:
     with op.batch_alter_table("artifacts") as batch_op_artifacts:
-        batch_op_artifacts.alter_column(  # type: ignore[attr-defined]
-            "visible", existing_type=sa.BOOLEAN(), nullable=True, existing_server_default=sa.text("'1'")
+        batch_op_artifacts.alter_column(
+            "visible",
+            existing_type=sa.BOOLEAN(),
+            nullable=True,
+            existing_server_default=sa.text("'1'"),  # type: ignore[arg-type]
         )
     with op.batch_alter_table("versions") as batch_op_versions:
-        batch_op_versions.add_column(sa.Column("file", sa.Text(), nullable=True))  # type: ignore[attr-defined]
-        batch_op_versions.create_unique_constraint(  # type: ignore[attr-defined]
+        batch_op_versions.add_column(sa.Column("file", sa.Text(), nullable=True))
+        batch_op_versions.create_unique_constraint(
             "unique_version_artifact_id_name",
             ["artifact_id", "name"],
         )
@@ -30,12 +33,15 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     with op.batch_alter_table("versions") as batch_op_versions:
-        batch_op_versions.drop_constraint(  # type: ignore[attr-defined]
+        batch_op_versions.drop_constraint(
             "unique_version_artifact_id_name",
             type_="unique",
         )
-        batch_op_versions.drop_column("versions", "file")  # type: ignore[attr-defined]
+        batch_op_versions.drop_column("file")
     with op.batch_alter_table("artifacts") as batch_op_artifacts:
-        batch_op_artifacts.alter_column(  # type: ignore[attr-defined]
-            "artifacts", "visible", existing_type=sa.BOOLEAN(), nullable=False, existing_server_default=sa.text("'1'")
+        batch_op_artifacts.alter_column(
+            "visible",
+            existing_type=sa.BOOLEAN(),
+            nullable=False,
+            existing_server_default=sa.text("'1'"),  # type: ignore[arg-type]
         )

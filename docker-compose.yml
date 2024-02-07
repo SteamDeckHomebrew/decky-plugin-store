@@ -4,26 +4,32 @@ services:
     build: .
     container_name: "${DEPLOYMENT_NAME}"
     environment:
-        - DB_PATH
+        - DB_URL
         - ANNOUNCEMENT_WEBHOOK
         - SUBMIT_AUTH_KEY
         - B2_APP_KEY_ID
         - B2_APP_KEY
         - B2_BUCKET_ID
-    volumes:
-        - ~/database:/db
     networks:
         - plugins-network
+        - default
     restart: unless-stopped
 
   redis_db:
     image: redis:latest
     restart: unless-stopped
-    networks:
-        - plugins-network
     environment:
         - REDIS_PORT=6379
-    
+
+  postgres_db:
+    image: postgres:16 # Postgres databases are only compatible with their same major version
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=decky
+      - POSTGRES_USER=decky
+      - POSTGRES_PASSWORD
+    volumes: 
+      - ${DB_PATH}:/var/lib/postgresql/data
 
 networks:
   plugins-network:
