@@ -13,7 +13,7 @@ from sqlalchemy import asc, desc
 from sqlalchemy.exc import NoResultFound, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.sql import collate, delete, select, update
+from sqlalchemy.sql import delete, select, update
 
 from constants import SortDirection, SortType
 
@@ -174,7 +174,7 @@ class Database:
             direction = desc
 
         if sort_by == SortType.NAME:
-            statement = statement.order_by(direction(collate(Artifact.name, "NOCASE")))
+            statement = statement.order_by(direction(Artifact.name))
         elif sort_by == SortType.DATE:
             statement = statement.order_by(direction(Artifact.created))
         elif sort_by == SortType.DOWNLOADS:
