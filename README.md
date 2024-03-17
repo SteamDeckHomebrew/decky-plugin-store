@@ -39,13 +39,33 @@ For more information about Decky Loader as well as documentation and development
 
 📦 Available as a [GitHub Package](https://github.com/SteamDeckHomebrew/decky-plugin-store/pkgs/container/decky-plugin-store) & ready to go as a [Docker](https://www.docker.com/) deployment.
 
-🫸 Data rate limiting
-
-
 ## 💾 Installation
-T.B.D.
+⚠️ **You will need the following to host a plugin store**: a domain name (for external access) and [Backblaze B2 Cloud Storage](https://www.backblaze.com/cloud-storage) to use for plugin storage.   
+  
+- [Install Docker](https://docs.docker.com/get-docker/) on your preferred platform
 
-## 🚀 Getting Started
+- Make sure to have the required [Environment Variables](https://docs.docker.com/engine/reference/run/#environment-variables) ready in an `.env` file where the `docker-compose.yml` file is located at:
+
+  - `DB_PATH`
+    > Database path where to put the SQLite databases
+  - `ANNOUNCEMENT_WEBHOOK`
+    > URL for [Discord webhooks](https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks) for new plugins and updates
+  - `SUBMIT_AUTH_KEY`
+    > API key for REST API requests to use for authentication; other systems are required to use this API key to be able to use the authentication-locked API endpoints
+  - `B2_APP_KEY_ID`
+    >  Backblaze B2 Master [App Key ID](https://www.backblaze.com/docs/cloud-storage-application-keys) (per account) 
+  - `B2_APP_KEY`
+    > Backblaze B2 [App Key](https://www.backblaze.com/docs/cloud-storage-application-keys) 
+  - `B2_BUCKET_ID`
+    > Backblaze B2 [Bucket ID](https://www.backblaze.com/docs/cloud-storage-application-keys) for restricting access to a single bucket
+    
+- Run the Docker environment with the following command:
+  
+  `docker compose up`
+
+  > Use `-d` after `docker compose up` to run it in the background, not taking the current terminal window for logs.
+  
+  > For local deployments, use the `-f docker-compose.local.yml` flag before `up`. The default API key for API requests is `deadbeef` for local deployments.
 
 ## 🤝 Contributing
 
