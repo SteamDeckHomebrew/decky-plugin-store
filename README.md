@@ -1,8 +1,53 @@
 # Plugin-Store
 
-This project powers Decky plugin store @ https://plugins.deckbrew.xyz/. It is using fastapi and sqlalchemy. 
+## 📖 About
+The Decky Plugin Store powers the [built-in plugin storefront](https://plugins.deckbrew.xyz/) of [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader) for Steam Deck. It can be used to host Decky Loader compatible plugins for any use case, including hosting testing plugins and providing an alternative storefront.
 
-## Contributing
+For more information about Decky Loader as well as documentation and development tools, please visit [our wiki](https://deckbrew.xyz/).
+
+### 🎨 Features
+
+🐍 Backend written in [Python](https://www.python.org/) with the [FastAPI](https://fastapi.tiangolo.com/) and [SQLAlchemy](https://www.sqlalchemy.org/) ([SQLite](https://www.sqlite.org/index.html) database [in use](https://github.com/SteamDeckHomebrew/decky-plugin-store/blob/main/plugin_store/database/database.py)) frameworks.
+
+[<ul> 🏤 <i>PostgreSQL support is currently in development.</i> </ul>](https://github.com/SteamDeckHomebrew/decky-plugin-store/tree/postgresql)
+
+🌐 [Frontend](https://github.com/SteamDeckHomebrew/decky-plugin-store/blob/main/plugin_store/templates/plugin_browser.html) (for web browsers) written in [JavaScript](https://developer.mozilla.org/en-US/docs/Web/javascript) with the [Vue.js](https://vuejs.org/) framework
+
+📤 API [endpoints](https://github.com/SteamDeckHomebrew/decky-plugin-store/blob/main/plugin_store/api/__init__.py) for:
+  <ul>
+
+  📃 List of plugins 
+  <ul>GET endpoint used by Decky Loader's built-in plugin browser</ul>
+
+  📩 Uploading plugins
+  
+  ♻️ Updating plugins
+  </ul>
+
+🪣 [Backblaze B2 Cloud Storage](https://www.backblaze.com/cloud-storage) supported for hosting plugins & metadata as a [CDN](https://github.com/SteamDeckHomebrew/decky-plugin-store/blob/main/plugin_store/cdn.py).
+
+<ul>
+
+🖼️ Handling image types for preview screenshots
+
+🔑 Handling uploads via an `APP_KEY` 
+
+♻️ Handling uploading different available versions of plugins
+</ul>
+
+💬 [Discord webhook](https://discord.com/developers/docs/resources/webhook) support for [sending notifications](https://github.com/SteamDeckHomebrew/decky-plugin-store/blob/main/plugin_store/discord.py) for new uploaded plugin versions
+
+📦 Available as a [GitHub Package](https://github.com/SteamDeckHomebrew/decky-plugin-store/pkgs/container/decky-plugin-store) & ready to go as a [Docker](https://www.docker.com/) deployment.
+
+🫸 Data rate limiting
+
+
+## 💾 Installation
+T.B.D.
+
+## 🚀 Getting Started
+
+## 🤝 Contributing
 
 ### Running in docker
 
