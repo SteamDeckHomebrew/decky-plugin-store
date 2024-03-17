@@ -40,6 +40,31 @@ For more information about Decky Loader as well as documentation and development
 📦 Available as a [GitHub Package](https://github.com/SteamDeckHomebrew/decky-plugin-store/pkgs/container/decky-plugin-store) & ready to go as a [Docker](https://www.docker.com/) deployment.
 
 ## 💾 Installation
+
+### Adding Storefront to Decky Loader
+
+⚠️ **Currently, Decky Loader accepts ONE custom store.**
+
+⚠️ **Currently, Decky Loader accepts updates from ONE store at the time.** 
+
+While switching stores keeps the plugins from any installed source installed, auto checking updates will not happen for all three channels (Stable, Testing and Custom). Only the currently selected Store Channel will be checked for plugin updates.
+
+⚠️ **[In the future](https://github.com/SteamDeckHomebrew/decky-loader/pull/600), custom stores will get a warning message pop up regarding third party plugins and plugin stores.**
+
+Due to the SteamDeckHomebrew / Decky Loader team not being responsible for third party plugins and stores, a warning will be displayed where the user would have to accept the potential risks of using third party software with Decky Loader.
+
+---
+
+- Open your Decky Loader tab
+- Click on the Settings button (displayed as a Cog)
+- Stay on the General tab
+- Change the Store Channel to Custom
+- Fill in the URL in the Custom Store URL text field underneath Store Channel
+
+![Screenshot of Decky Loader's settings screen. Go to the General tag, change the Store Channel option to Custom and fill in the Custom Store URL in the URL text field.](images/CustomStoreConfig.png)
+
+### Hosting a Decky Loader Plugin Storefront
+
 ⚠️ **You will need the following to host a plugin store**: a domain name (for external access) and [Backblaze B2 Cloud Storage](https://www.backblaze.com/cloud-storage) to use for plugin storage.   
   
 - [Install Docker](https://docs.docker.com/get-docker/) on your preferred platform
