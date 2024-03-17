@@ -9,7 +9,7 @@ For more information about Decky Loader as well as documentation and development
 
 🐍 Backend written in [Python](https://www.python.org/) with the [FastAPI](https://fastapi.tiangolo.com/) and [SQLAlchemy](https://www.sqlalchemy.org/) ([SQLite](https://www.sqlite.org/index.html) database [in use](https://github.com/SteamDeckHomebrew/decky-plugin-store/blob/main/plugin_store/database/database.py)) frameworks.
 
-[<ul> 🏤 <i>PostgreSQL support is currently in development.</i> </ul>](https://github.com/SteamDeckHomebrew/decky-plugin-store/tree/postgresql)
+[<ul> 🏤 <i>PostgreSQL support is currently in development.</i> </ul>](https://github.com/SteamDeckHomebrew/decky-plugin-store/pull/54)
 
 🌐 [Frontend](https://github.com/SteamDeckHomebrew/decky-plugin-store/blob/main/plugin_store/templates/plugin_browser.html) (for web browsers) written in [JavaScript](https://developer.mozilla.org/en-US/docs/Web/javascript) with the [Vue.js](https://vuejs.org/) framework
 
