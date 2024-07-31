@@ -17,7 +17,7 @@ alembic = "^1.8.1"
 aiosqlite = "^0.17.0"  # for async sqlite in sqlalchemy
 asgiref = "^3.5.2"
 discord-webhook = {version = "^0.17.0", extras = ["async"]}
-fastapi = "^0.85.1"
+fastapi = "^0.109.1"
 python-multipart = "^0.0.5"  # for multipart forms in fastapi
 sqlalchemy = "^1.4.41"
 uvicorn = "^0.20.0"
