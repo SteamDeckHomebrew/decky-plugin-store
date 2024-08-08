@@ -26,7 +26,7 @@ redis = "^5.0.1"
 asyncpg = "^0.29.0" # for async postgres in sqalchemy
 
 [tool.poetry.group.dev.dependencies]
-black = "^22.8.0"
+black = "^24.3.0"
 flake8 = "^6.0.0"
 flake8-pyproject = "^1.2.2"
 httpx = "^0.23.0"
