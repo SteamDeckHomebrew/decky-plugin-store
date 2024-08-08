@@ -82,7 +82,7 @@ def seed_db_sessionmaker(seed_db_engine: tuple["AsyncEngine", "sessionmaker"]) -
 
 
 @pytest_asyncio.fixture()
-async def seed_db_session(seed_db_engine: tuple["AsyncEngine", "sessionmaker"]) -> "AsyncSession":
+async def seed_db_session(seed_db_engine: tuple["AsyncEngine", "sessionmaker"]) -> "AsyncIterator[AsyncSession]":
     async with prepare_transactioned_db_session(*seed_db_engine) as session:
         yield session
 
