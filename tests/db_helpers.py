@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, UTC
 from hashlib import sha256
 from os import getenv
+from typing import TYPE_CHECKING
 
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
@@ -10,6 +11,9 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import select
 
 from database.models import Artifact, Base, Tag, Version
+
+if TYPE_CHECKING:
+    from typing import AsyncIterator
 
 
 class FakePluginGenerator:
@@ -168,7 +172,10 @@ async def prepare_test_db(
 
 
 @asynccontextmanager
-async def prepare_transactioned_db_session(engine: "AsyncEngine", db_sessionmaker: "sessionmaker") -> "AsyncSession":
+async def prepare_transactioned_db_session(
+    engine: "AsyncEngine",
+    db_sessionmaker: "sessionmaker",
+) -> "AsyncIterator[AsyncSession]":
     connection = await engine.connect()
     outer_transaction = await connection.begin()
     async_session = db_sessionmaker(bind=connection)
