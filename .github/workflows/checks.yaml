@@ -1,8 +1,7 @@
 name: Checks
 
 on:
-  pull_request:
-  push:
+  pull_request_target:
 
 defaults:
   run:
