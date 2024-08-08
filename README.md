@@ -1,8 +1,98 @@
 # Plugin-Store
 
-This project powers Decky plugin store @ https://plugins.deckbrew.xyz/. It is using fastapi and sqlalchemy. 
+## 📖 About
+The Decky Plugin Store powers the [built-in plugin storefront](https://plugins.deckbrew.xyz/) of [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader) for Steam Deck. It can be used to host Decky Loader compatible plugins for any use case, including hosting testing plugins and providing an alternative storefront.
 
-## Contributing
+For more information about Decky Loader as well as documentation and development tools, please visit [our wiki](https://deckbrew.xyz/).
+
+### 🎨 Features
+
+🐍 Backend written in [Python](https://www.python.org/) with the [FastAPI](https://fastapi.tiangolo.com/) and [SQLAlchemy](https://www.sqlalchemy.org/) ([SQLite](https://www.sqlite.org/index.html) database [in use](https://github.com/SteamDeckHomebrew/decky-plugin-store/blob/main/plugin_store/database/database.py)) frameworks.
+
+[<ul> 🏤 <i>PostgreSQL support is currently in development.</i> </ul>](https://github.com/SteamDeckHomebrew/decky-plugin-store/pull/54)
+
+🌐 [Frontend](https://github.com/SteamDeckHomebrew/decky-plugin-store/blob/main/plugin_store/templates/plugin_browser.html) (for web browsers) written in [JavaScript](https://developer.mozilla.org/en-US/docs/Web/javascript) with the [Vue.js](https://vuejs.org/) framework
+
+📤 API [endpoints](https://github.com/SteamDeckHomebrew/decky-plugin-store/blob/main/plugin_store/api/__init__.py) for:
+  <ul>
+
+  📃 List of plugins 
+  <ul>GET endpoint used by Decky Loader's built-in plugin browser</ul>
+
+  📩 Uploading plugins
+  
+  ♻️ Updating plugins
+  </ul>
+
+🪣 [Backblaze B2 Cloud Storage](https://www.backblaze.com/cloud-storage) supported for hosting plugins & metadata as a [CDN](https://github.com/SteamDeckHomebrew/decky-plugin-store/blob/main/plugin_store/cdn.py).
+
+<ul>
+
+🖼️ Handling image types for preview screenshots
+
+🔑 Handling uploads via an `APP_KEY` 
+
+♻️ Handling uploading different available versions of plugins
+</ul>
+
+💬 [Discord webhook](https://discord.com/developers/docs/resources/webhook) support for [sending notifications](https://github.com/SteamDeckHomebrew/decky-plugin-store/blob/main/plugin_store/discord.py) for new uploaded plugin versions
+
+📦 Available as a [GitHub Package](https://github.com/SteamDeckHomebrew/decky-plugin-store/pkgs/container/decky-plugin-store) & ready to go as a [Docker](https://www.docker.com/) deployment.
+
+## 💾 Installation
+
+### Adding Storefront to Decky Loader
+
+⚠️ **Currently, Decky Loader accepts ONE custom store.**
+
+⚠️ **Currently, Decky Loader accepts updates from ONE store at the time.** 
+
+While switching stores keeps the plugins from any installed source installed, auto checking updates will not happen for all three channels (Stable, Testing and Custom). Only the currently selected Store Channel will be checked for plugin updates.
+
+⚠️ **[In the future](https://github.com/SteamDeckHomebrew/decky-loader/pull/600), custom stores will get a warning message pop up regarding third party plugins and plugin stores.**
+
+Due to the SteamDeckHomebrew / Decky Loader team not being responsible for third party plugins and stores, a warning will be displayed where the user would have to accept the potential risks of using third party software with Decky Loader.
+
+---
+
+- Open your Decky Loader tab
+- Click on the Settings button (displayed as a Cog)
+- Stay on the General tab
+- Change the Store Channel to Custom
+- Fill in the URL in the Custom Store URL text field underneath Store Channel
+
+![Screenshot of Decky Loader's settings screen. Go to the General tag, change the Store Channel option to Custom and fill in the Custom Store URL in the URL text field.](images/CustomStoreConfig.png)
+
+### Hosting a Decky Loader Plugin Storefront
+
+⚠️ **You will need the following to host a plugin store**: a domain name (for external access) and [Backblaze B2 Cloud Storage](https://www.backblaze.com/cloud-storage) to use for plugin storage.   
+  
+- [Install Docker](https://docs.docker.com/get-docker/) on your preferred platform
+
+- Make sure to have the required [Environment Variables](https://docs.docker.com/engine/reference/run/#environment-variables) ready in an `.env` file where the `docker-compose.yml` file is located at:
+
+  - `DB_PATH`
+    > Database path where to put the SQLite databases
+  - `ANNOUNCEMENT_WEBHOOK`
+    > URL for [Discord webhooks](https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks) for new plugins and updates
+  - `SUBMIT_AUTH_KEY`
+    > API key for REST API requests to use for authentication; other systems are required to use this API key to be able to use the authentication-locked API endpoints
+  - `B2_APP_KEY_ID`
+    >  Backblaze B2 Master [App Key ID](https://www.backblaze.com/docs/cloud-storage-application-keys) (per account) 
+  - `B2_APP_KEY`
+    > Backblaze B2 [App Key](https://www.backblaze.com/docs/cloud-storage-application-keys) 
+  - `B2_BUCKET_ID`
+    > Backblaze B2 [Bucket ID](https://www.backblaze.com/docs/cloud-storage-application-keys) for restricting access to a single bucket
+    
+- Run the Docker environment with the following command:
+  
+  `docker compose up`
+
+  > Use `-d` after `docker compose up` to run it in the background, not taking the current terminal window for logs.
+  
+  > For local deployments, use the `-f docker-compose.local.yml` flag before `up`. The default API key for API requests is `deadbeef` for local deployments.
+
+## 🤝 Contributing
 
 ### Running in docker
 
