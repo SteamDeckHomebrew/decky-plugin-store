@@ -6,12 +6,14 @@ from sqlalchemy import DateTime
 from sqlalchemy.types import TypeDecorator
 
 if TYPE_CHECKING:
+    from typing import Any
+
     from sqlalchemy.engine import Dialect
 
 UTC = ZoneInfo("UTC")
 
 
-class TZDateTime(TypeDecorator):
+class TZDateTime(TypeDecorator[datetime]):
     """
     A DateTime type which can only store tz-aware DateTimes.
     """
@@ -26,7 +28,7 @@ class TZDateTime(TypeDecorator):
             return value.astimezone(UTC)
         return value
 
-    def process_result_value(self, value: "datetime", dialect: "Dialect") -> "datetime | None":
+    def process_result_value(self, value: "Any | None", dialect: "Dialect") -> "datetime | None":
         if isinstance(value, datetime) and value.tzinfo is None:
             return value.replace(tzinfo=UTC)
         return value

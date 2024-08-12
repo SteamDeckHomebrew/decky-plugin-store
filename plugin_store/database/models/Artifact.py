@@ -2,7 +2,7 @@ from datetime import datetime
 from urllib.parse import quote
 
 from sqlalchemy import Boolean, Column, ForeignKey, func, Integer, select, Table, Text, UniqueConstraint
-from sqlalchemy.orm import column_property, relationship
+from sqlalchemy.orm import column_property, Mapped, relationship
 
 import constants
 
@@ -29,30 +29,31 @@ PluginTag = Table(
 class Artifact(Base):
     __tablename__ = "artifacts"
 
-    id: int = Column(Integer, autoincrement=True, primary_key=True)
-    name: str = Column(Text)
-    author: str = Column(Text)
-    description: str = Column(Text)
-    _image_path: "str | None" = Column("image_path", Text, nullable=True)
-    tags: "list[Tag]" = relationship(
+    id: Mapped[int] = Column(Integer, autoincrement=True, primary_key=True)
+    name: Mapped[str] = Column(Text)
+    author: Mapped[str] = Column(Text)
+    description: Mapped[str] = Column(Text)
+    _image_path: Mapped[str | None] = Column("image_path", Text, nullable=True)
+    tags: "Mapped[list[Tag]]" = relationship(
         "Tag", secondary=PluginTag, cascade="all, delete", order_by="Tag.tag", lazy="selectin"
     )
-    versions: "list[Version]" = relationship(
+    versions: "Mapped[list[Version]]" = relationship(
         "Version", cascade="all, delete", lazy="selectin", order_by="Version.created.desc(), Version.id.asc()"
     )
-    visible: bool = Column(Boolean, default=True)
+    visible: Mapped[bool] = Column(Boolean, default=True)
 
-    downloads: int = column_property(
+    # Properties computed from relations
+    downloads: Mapped[int] = column_property(
         select(func.sum(Version.downloads)).where(Version.artifact_id == id).correlate_except(Version).scalar_subquery()
     )
-    updates: int = column_property(
+    updates: Mapped[int] = column_property(
         select(func.sum(Version.updates)).where(Version.artifact_id == id).correlate_except(Version).scalar_subquery()
     )
 
-    created: datetime = column_property(
+    created: Mapped[datetime] = column_property(
         select(func.min(Version.created)).where(Version.artifact_id == id).correlate_except(Version).scalar_subquery()
     )
-    updated: datetime = column_property(
+    updated: Mapped[datetime] = column_property(
         select(func.max(Version.created)).where(Version.artifact_id == id).correlate_except(Version).scalar_subquery()
     )
 

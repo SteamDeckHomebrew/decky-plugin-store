@@ -11,8 +11,7 @@ from asgiref.sync import sync_to_async
 from fastapi import Depends
 from sqlalchemy import asc, desc
 from sqlalchemy.exc import NoResultFound, SQLAlchemyError
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession, create_async_engine
 from sqlalchemy.sql import delete, select, update
 
 from constants import SortDirection, SortType
@@ -21,21 +20,21 @@ from .models.Artifact import Artifact, PluginTag, Tag
 from .models.Version import Version
 
 if TYPE_CHECKING:
-    from typing import AsyncIterator, Iterable
+    from typing import AsyncIterator, Iterable, Sequence
 
 logger = logging.getLogger()
 
 UTC = ZoneInfo("UTC")
 
-
+db_url = getenv("DB_URL")
+if not db_url:
+    raise Exception("DB_URL not provided or invalid!")
 async_engine = create_async_engine(
-    getenv("DB_URL"),
+    db_url,
     pool_pre_ping=True,
     # echo=settings.ECHO_SQL,
 )
-AsyncSessionLocal = sessionmaker(
-    bind=async_engine, autoflush=False, future=True, expire_on_commit=False, class_=AsyncSession
-)
+AsyncSessionLocal = async_sessionmaker(bind=async_engine, autoflush=False, future=True, expire_on_commit=False)
 
 db_lock = Lock()
 
@@ -158,7 +157,7 @@ class Database:
         sort_direction: SortDirection = SortDirection.DESC,
         limit: int = 50,
         page: int = 0,
-    ) -> list["Artifact"]:
+    ) -> "Sequence[Artifact]":
         statement = select(Artifact).offset(limit * page)
         if name:
             statement = statement.where(Artifact.name.like(f"%{name}%"))
