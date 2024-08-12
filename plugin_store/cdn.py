@@ -35,7 +35,7 @@ async def _b2_upload(filename: str, binary: "bytes", mime_type: str = "b2/x-auto
         auth_str = f"{getenv('B2_APP_KEY_ID')}:{getenv('B2_APP_KEY')}".encode("utf-8")
         async with web.get(
             "https://api.backblazeb2.com/b2api/v2/b2_authorize_account",
-            headers={"Authorization": f"Basic: {b64encode(auth_str).decode('utf-8')}"},
+            headers={"Authorization": f"Basic {b64encode(auth_str).decode('utf-8')}"},
         ) as res:
             if not res.status == 200:
                 getLogger().error(f"B2 LOGIN ERROR {await res.read()!r}")
