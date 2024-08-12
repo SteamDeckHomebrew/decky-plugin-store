@@ -4,7 +4,7 @@ services:
     build: .
     container_name: plugin_store
     environment:
-        - DB_URL
+        - DB_URL=postgresql+asyncpg://decky:decky@postgres_db/decky
         - ANNOUNCEMENT_WEBHOOK
         - SUBMIT_AUTH_KEY=deadbeef
         - B2_APP_KEY_ID
@@ -16,6 +16,9 @@ services:
     ports:
         - "5566:5566"
     command: uvicorn main:app --reload --host 0.0.0.0 --port 5566
+    depends_on:
+      postgres_db:
+        condition: service_healthy
 
   redis_db:
     image: redis:latest
@@ -31,4 +34,12 @@ services:
       - POSTGRES_USER=decky
       - POSTGRES_PASSWORD=decky
     volumes:
-      - ../store-postgres:/var/lib/postgresql/data
+      - store-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: pg_isready -U myuser -d db_prod
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  store-postgres:
