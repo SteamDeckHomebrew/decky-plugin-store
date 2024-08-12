@@ -15,8 +15,8 @@ class Version(Base):
     name = Column(Text)
     hash = Column(Text)
     file_field = Column("file", Text, nullable=True)
-    downloads = Column(Integer, default=0)
-    updates = Column(Integer, default=0)
+    downloads = Column(Integer, default=0, nullable=False)
+    updates = Column(Integer, default=0, nullable=False)
 
     created = Column("added_on", TZDateTime)
 

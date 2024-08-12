@@ -9,6 +9,8 @@ Create Date: 2022-11-07 01:36:59.727609
 import sqlalchemy as sa
 from alembic import op
 
+from database import utils
+
 # revision identifiers, used by Alembic.
 revision = "4fc55239b4d6"
 down_revision = None
@@ -44,7 +46,7 @@ def upgrade() -> None:
         sa.Column("artifact_id", sa.Integer(), nullable=True),
         sa.Column("name", sa.Text(), nullable=True),
         sa.Column("hash", sa.Text(), nullable=True),
-        sa.Column("added_on", sa.DateTime(), nullable=True),
+        sa.Column("added_on", utils.TZDateTime(), nullable=True),
         sa.ForeignKeyConstraint(("artifact_id",), ["artifacts.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
