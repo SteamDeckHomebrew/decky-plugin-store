@@ -6,7 +6,7 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from pytest_mock import MockFixture
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
+from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncEngine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 import main
@@ -72,7 +72,7 @@ async def client_auth(client_unauth: "AsyncClient") -> "AsyncClient":
 
 
 @pytest_asyncio.fixture(scope="session")
-async def seed_db_engine() -> tuple["AsyncEngine", "sessionmaker"]:
+async def seed_db_engine() -> tuple["AsyncEngine", "async_sessionmaker"]:
     engine = create_test_db_engine()
     db_sessionmaker = create_test_db_sessionmaker(engine)
     await prepare_test_db(engine, db_sessionmaker, True)

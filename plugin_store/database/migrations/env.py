@@ -67,8 +67,11 @@ async def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
+    db_url = getenv("DB_URL")
+    if not db_url:
+        raise Exception("DB_URL not provided or invalid!")
     connectable = create_async_engine(
-        getenv("DB_URL"),
+        db_url,
         poolclass=pool.NullPool,
         future=True,
     )

@@ -20,7 +20,7 @@ discord-webhook = {version = "^1.3.1", extras = ["async"]}
 fastapi = "^0.112.0"
 pydantic = "^1.10.17"
 python-multipart = "^0.0.9"  # for multipart forms in fastapi
-sqlalchemy = "^1.4.41"
+sqlalchemy = "^2.0.32"
 uvicorn = "^0.30.6"
 limits = {extras = ["redis"], version = "^3.13.0"}
 redis = "^5.0.8"
@@ -39,7 +39,6 @@ pytest-env = "^1.1.3"
 pytest-freezer = "^0.4.8"
 pytest-lazy-fixture = "^0.6.3"
 pytest-mock = "^3.14.0"
-sqlalchemy2-stubs = "*"
 types-pytest-lazy-fixture = "^0.6.3.20240707"
 
 [tool.black]

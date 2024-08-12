@@ -6,7 +6,7 @@ from os import getenv
 from typing import TYPE_CHECKING
 
 from sqlalchemy import event
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
+from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncEngine, AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import select
 
@@ -118,21 +118,23 @@ class FakePluginGenerator:
 
 
 def create_test_db_engine() -> "AsyncEngine":
+    db_url = getenv("DB_URL")
+    if not db_url:
+        raise Exception("DB_URL not provided or invalid!")
     return create_async_engine(
-        getenv("DB_URL"),
+        db_url,
         pool_pre_ping=True,
         # echo=True,
     )
 
 
-def create_test_db_sessionmaker(engine: "AsyncEngine") -> "sessionmaker":
-    return sessionmaker(
+def create_test_db_sessionmaker(engine: "AsyncEngine") -> "async_sessionmaker":
+    return async_sessionmaker(
         bind=engine,
         autoflush=False,
         future=True,
         expire_on_commit=False,
         autocommit=False,
-        class_=AsyncSession,
     )
 
 
@@ -141,7 +143,7 @@ async def migrate_test_db(engine: "AsyncEngine") -> None:
         await conn.run_sync(Base.metadata.create_all)
 
 
-async def seed_test_db(db_sessionmaker: "sessionmaker") -> None:
+async def seed_test_db(db_sessionmaker: "async_sessionmaker") -> None:
     session = db_sessionmaker()
     generator = FakePluginGenerator(session, datetime(2022, 2, 25, 0, 0, 0, tzinfo=UTC))
     await generator.create(tags=["tag-1", "tag-2"], versions=["0.1.0", "0.2.0", "1.0.0"])
@@ -163,7 +165,7 @@ async def seed_test_db(db_sessionmaker: "sessionmaker") -> None:
 
 async def prepare_test_db(
     engine: "AsyncEngine",
-    db_sessionmaker: "sessionmaker",
+    db_sessionmaker: "async_sessionmaker",
     seed: bool = False,
 ) -> None:
     await migrate_test_db(engine)
