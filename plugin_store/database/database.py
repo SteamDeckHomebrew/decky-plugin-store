@@ -3,6 +3,7 @@ from asyncio import Lock
 from datetime import datetime
 from os import getenv
 from typing import Optional, TYPE_CHECKING
+from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from alembic import command
@@ -16,6 +17,7 @@ from sqlalchemy.sql import delete, select, update
 
 from constants import SortDirection, SortType
 
+from .models.announcements import Announcement
 from .models.Artifact import Artifact, PluginTag, Tag
 from .models.Version import Version
 
@@ -66,6 +68,55 @@ class Database:
     def init(self):
         alembic_cfg = Config("/alembic.ini")
         command.upgrade(alembic_cfg, "head")
+
+    async def list_announcements(self, active: bool = True):
+        statement = select(Announcement)
+        if not active:
+            statement = statement.where(Announcement.active == True)
+        statement = statement.order_by(desc(Announcement.created))
+        result = (await self.session.execute(statement)).scalars().all()
+        return result or []
+
+    async def get_announcement(self, announcement_id: UUID) -> Announcement | None:
+        statement = select(Announcement).where(Announcement.id == announcement_id)
+        try:
+            return (await self.session.execute(statement)).scalars().first()
+        except NoResultFound:
+            return None
+
+    async def create_announcement(self, title: str, text: str) -> Announcement | None:
+        nested = await self.session.begin_nested()
+        async with self.lock:
+            announcement = Announcement(
+                title=title,
+                text=text,
+            )
+            try:
+                self.session.add(announcement)
+            except Exception:
+                await nested.rollback()
+                raise
+            await self.session.commit()
+        return await self.get_announcement(announcement.id)
+
+    async def update_announcement(self, announcement: Announcement, **kwargs) -> Announcement | None:
+        nested = await self.session.begin_nested()
+        async with self.lock:
+            if "title" in kwargs:
+                announcement.title = kwargs["title"]
+            if "text" in kwargs:
+                announcement.text = kwargs["text"]
+            try:
+                self.session.add(announcement)
+            except Exception:
+                await nested.rollback()
+                raise
+            await self.session.commit()
+        return await self.get_announcement(announcement.id)
+
+    async def delete_announcement(self, announcement_id: UUID) -> None:
+        await self.session.execute(delete(Announcement).where(Announcement.id == announcement_id))
+        await self.session.commit()
 
     async def prepare_tags(self, session: "AsyncSession", tag_names: list[str]) -> "list[Tag]":
         try:

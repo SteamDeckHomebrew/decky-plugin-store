@@ -22,14 +22,6 @@ if TYPE_CHECKING:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("client", [lazy_fixture("client_unauth"), lazy_fixture("client_auth")])
-async def test_index_endpoint(client: "AsyncClient", index_template: str):
-    response = await client.get("/")
-    assert response.status_code == 200
-    assert response.text == index_template
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("client", [lazy_fixture("client_unauth"), lazy_fixture("client_auth")])
 @pytest.mark.parametrize("isUpdate", [True, False, None], ids=["update", "download", "no_isUpdate"])
 @pytest.mark.parametrize(
     ("plugin_name", "version_name", "return_code"),
@@ -458,16 +450,6 @@ async def test_plugins_list_endpoint(
         [response_obj for response_obj in expected_response if response_obj["id"] in plugin_ids],
         key=lambda obj: plugin_id_order.index(obj["id"]),  # type: ignore[arg-type]
     )
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    ("client", "return_code"),
-    [(lazy_fixture("client_unauth"), 403), (lazy_fixture("client_auth"), 200)],
-)
-async def test_auth_endpoint(client: "AsyncClient", return_code: int):
-    response = await client.post("/__auth")
-    assert response.status_code == return_code
 
 
 @pytest.mark.asyncio

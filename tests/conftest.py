@@ -116,3 +116,19 @@ def plugin_submit_data(request: "pytest.FixtureRequest") -> "tuple[dict, dict]":
 @pytest.fixture()
 def index_template():
     return (APP_PATH / "templates/plugin_browser.html").read_text()
+
+
+@pytest.fixture()
+def _mock_uuidv7_generation(mocker: "MockFixture") -> None:
+    """
+    Mocking UUID generation randomness
+
+    Random generator for UUID will return 0x11, so the UUID will be predictable as long as you also freeze the time.
+    UUIDs will still increment, as the generator keeps the count of generated UUIDs in a single time tick and increments
+    it by 1 at 5th byte, so for 1st UUID the last segment will be `111111111111`, 2nd UUID will have `111211111111` etc.
+    """
+
+    def urandom_side_effect(size):
+        return b"\x11" * size
+
+    mocker.patch("database.utils.os.urandom", side_effect=urandom_side_effect)

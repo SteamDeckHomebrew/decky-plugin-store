@@ -3,6 +3,7 @@ from typing import Any
 
 from fastapi import File, Form, Request, UploadFile
 from fastapi.params import Depends
+from pydantic import UUID1
 
 
 def getIpHash(request: Request):
@@ -35,3 +36,7 @@ class FormBodyCls(Depends):
 # noinspection PyPep8Naming
 def FormBody(model: Any = None, *, use_cache: bool = True) -> Any:
     return FormBodyCls(model=model, use_cache=use_cache)
+
+
+class UUID7(UUID1):
+    _required_version = 7

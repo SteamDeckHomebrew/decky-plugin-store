@@ -4,13 +4,14 @@ from datetime import datetime, timedelta, UTC
 from hashlib import sha256
 from os import getenv
 from typing import TYPE_CHECKING
+from uuid import UUID
 
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncEngine, AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import select
 
-from database.models import Artifact, Base, Tag, Version
+from database.models import Announcement, Artifact, Base, Tag, Version
 
 if TYPE_CHECKING:
     from typing import AsyncIterator
@@ -161,6 +162,23 @@ async def seed_test_db(db_sessionmaker: "async_sessionmaker") -> None:
     await generator.create("seventh", tags=["tag-2", "tag-3"], versions=["3.0.0", "3.1.0", "3.2.0"], visible=False)
     generator.date = datetime(2022, 2, 25, 0, 7, 0, 0, tzinfo=UTC)
     await generator.create(tags=["tag-1", "tag-3"], versions=["1.0.0", "2.0.0", "3.0.0", "4.0.0"], visible=False)
+    announcement1 = Announcement(  # type: ignore[call-arg]
+        id=UUID("01234568-79ab-7cde-a445-b9f117ca645d"),
+        title="Test announcement 1",
+        text="This is only a drill!",
+        created=datetime(2023, 11, 16, 0, 0, 0, tzinfo=UTC),
+        updated=datetime(2023, 11, 16, 0, 0, 0, tzinfo=UTC),
+    )
+    session.add(announcement1)
+    announcement2 = Announcement(  # type: ignore[call-arg]
+        id=UUID("89abcdef-79ab-7cde-99e0-56b0d2e2dcdb"),
+        title="Test announcement 2",
+        text="Seriously! Just a drill!",
+        created=datetime(2023, 11, 16, 0, 1, 0, tzinfo=UTC),
+        updated=datetime(2023, 11, 16, 0, 1, 0, tzinfo=UTC),
+    )
+    session.add(announcement2)
+    await session.commit()
 
 
 async def prepare_test_db(

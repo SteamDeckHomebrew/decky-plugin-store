@@ -1,7 +1,7 @@
 from functools import reduce
 from operator import add
 from os import getenv
-from typing import Optional
+from typing import Annotated, Optional
 
 import fastapi
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -14,13 +14,15 @@ from limits import parse, storage, strategies
 from cdn import upload_image, upload_version
 from constants import SortDirection, SortType, TEMPLATES_DIR
 from database.database import database, Database
+from database.models import Announcement
 from discord import post_announcement
 
+from .models import announcements as api_announcements
 from .models import delete as api_delete
 from .models import list as api_list
 from .models import submit as api_submit
 from .models import update as api_update
-from .utils import FormBody, getIpHash
+from .utils import FormBody, getIpHash, UUID7
 
 app = FastAPI()
 
@@ -64,6 +66,74 @@ async def auth_token(authorization: str = Depends(APIKeyHeader(name="Authorizati
 @app.get("/", response_class=HTMLResponse)
 async def index():
     return INDEX_PAGE
+
+
+@app.get(
+    "/v1/announcements",
+    dependencies=[Depends(auth_token)],
+    response_model=list[api_announcements.AnnouncementResponse],
+)
+async def list_announcements(
+    db: Annotated["Database", Depends(database)],
+):
+    return await db.list_announcements(active=False)
+
+
+@app.post(
+    "/v1/announcements",
+    dependencies=[Depends(auth_token)],
+    response_model=api_announcements.AnnouncementResponse,
+    status_code=fastapi.status.HTTP_201_CREATED,
+)
+async def create_announcement(
+    db: Annotated["Database", Depends(database)],
+    announcement: api_announcements.AnnouncementRequest,
+):
+    return await db.create_announcement(title=announcement.title, text=announcement.text)
+
+
+@app.get("/v1/announcements/-/current", response_model=list[api_announcements.CurrentAnnouncementResponse])
+async def list_current_announcements(
+    db: Annotated["Database", Depends(database)],
+):
+    return await db.list_announcements()
+
+
+@app.get(
+    "/v1/announcements/{announcement_id}",
+    dependencies=[Depends(auth_token)],
+    response_model=api_announcements.AnnouncementResponse,
+)
+async def get_announcement(
+    db: Annotated["Database", Depends(database)],
+    announcement_id: UUID7,
+):
+    return await db.get_announcement(announcement_id)
+
+
+@app.put(
+    "/v1/announcements/{announcement_id}",
+    dependencies=[Depends(auth_token)],
+    response_model=api_announcements.AnnouncementResponse,
+)
+async def update_announcement(
+    db: Annotated["Database", Depends(database)],
+    existing_announcement: Annotated["Announcement", Depends(get_announcement)],
+    new_announcement: api_announcements.AnnouncementRequest,
+):
+    return await db.update_announcement(existing_announcement, title=new_announcement.title, text=new_announcement.text)
+
+
+@app.delete(
+    "/v1/announcements/{announcement_id}",
+    dependencies=[Depends(auth_token)],
+    status_code=fastapi.status.HTTP_204_NO_CONTENT,
+)
+async def delete_announcement(
+    db: Annotated["Database", Depends(database)],
+    announcement_id: UUID7,
+):
+    await db.delete_announcement(announcement_id)
 
 
 @app.get("/plugins", response_model=list[api_list.ListPluginResponse])
