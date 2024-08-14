@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 from pytest_mock import MockFixture
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 from sqlalchemy.orm import sessionmaker
@@ -58,7 +58,10 @@ def plugin_store() -> "FastAPI":
 async def client_unauth(
     plugin_store: "FastAPI",
 ) -> "AsyncIterator[AsyncClient]":
-    async with AsyncClient(app=plugin_store, base_url="http://test") as client:
+    async with AsyncClient(
+        base_url="http://test",
+        transport=ASGITransport(app=plugin_store),  # type: ignore[arg-type]
+    ) as client:
         yield client
 
 
