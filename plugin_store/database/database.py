@@ -71,8 +71,8 @@ class Database:
 
     async def list_announcements(self, active: bool = True):
         statement = select(Announcement)
-        if not active:
-            statement = statement.where(Announcement.active == True)
+        if active:
+            statement = statement.where(Announcement.active.is_(True))
         statement = statement.order_by(desc(Announcement.created))
         result = (await self.session.execute(statement)).scalars().all()
         return result or []
@@ -84,12 +84,13 @@ class Database:
         except NoResultFound:
             return None
 
-    async def create_announcement(self, title: str, text: str) -> Announcement | None:
+    async def create_announcement(self, title: str, text: str, active: bool) -> Announcement | None:
         nested = await self.session.begin_nested()
         async with self.lock:
             announcement = Announcement(
                 title=title,
                 text=text,
+                active=active,
             )
             try:
                 self.session.add(announcement)
@@ -106,6 +107,8 @@ class Database:
                 announcement.title = kwargs["title"]
             if "text" in kwargs:
                 announcement.text = kwargs["text"]
+            if "active" in kwargs:
+                announcement.active = kwargs["active"]
             try:
                 self.session.add(announcement)
             except Exception:

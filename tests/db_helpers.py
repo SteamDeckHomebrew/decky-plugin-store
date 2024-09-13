@@ -168,6 +168,7 @@ async def seed_test_db(db_sessionmaker: "async_sessionmaker") -> None:
         text="This is only a drill!",
         created=datetime(2023, 11, 16, 0, 0, 0, tzinfo=UTC),
         updated=datetime(2023, 11, 16, 0, 0, 0, tzinfo=UTC),
+        active=True,
     )
     session.add(announcement1)
     announcement2 = Announcement(  # type: ignore[call-arg]
@@ -176,8 +177,18 @@ async def seed_test_db(db_sessionmaker: "async_sessionmaker") -> None:
         text="Seriously! Just a drill!",
         created=datetime(2023, 11, 16, 0, 1, 0, tzinfo=UTC),
         updated=datetime(2023, 11, 16, 0, 1, 0, tzinfo=UTC),
+        active=True,
     )
     session.add(announcement2)
+    announcement3 = Announcement(  # type: ignore[call-arg]
+        id=UUID("89abcdef-79ab-7cde-99e0-9870d2e2dcdb"),
+        title="Hidden test announcement",
+        text="This one is inactive!!",
+        created=datetime(2023, 11, 16, 0, 2, 0, tzinfo=UTC),
+        updated=datetime(2023, 11, 16, 0, 2, 0, tzinfo=UTC),
+        active=False,
+    )
+    session.add(announcement3)
     await session.commit()
 
 

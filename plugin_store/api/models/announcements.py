@@ -35,3 +35,5 @@ class AnnouncementResponse(BaseModel):
 class AnnouncementRequest(BaseModel):
     title: str
     text: str
+
+    active: bool = True
