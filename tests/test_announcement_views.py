@@ -55,18 +55,28 @@ async def test_announcement_list(
     assert response.status_code == 200
     data = response.json()
 
-    assert len(data) == 2
+    assert len(data) == 3
     assert data[0] == {
+        "id": "89abcdef-79ab-7cde-99e0-9870d2e2dcdb",
+        "title": "Hidden test announcement",
+        "text": "This one is inactive!!",
+        "active": False,
+        "created": "2023-11-16T00:02:00Z",
+        "updated": "2023-11-16T00:02:00Z",
+    }
+    assert data[1] == {
         "id": "89abcdef-79ab-7cde-99e0-56b0d2e2dcdb",
         "title": "Test announcement 2",
         "text": "Seriously! Just a drill!",
+        "active": True,
         "created": "2023-11-16T00:01:00Z",
         "updated": "2023-11-16T00:01:00Z",
     }
-    assert data[1] == {
+    assert data[2] == {
         "id": "01234568-79ab-7cde-a445-b9f117ca645d",
         "title": "Test announcement 1",
         "text": "This is only a drill!",
+        "active": True,
         "created": "2023-11-16T00:00:00Z",
         "updated": "2023-11-16T00:00:00Z",
     }
@@ -90,6 +100,7 @@ async def test_announcement_create(
         "id": "018c22ac-d000-7444-9111-111111111111",
         "title": "Test 3",
         "text": "Drill test!",
+        "active": True,
         "created": "2023-12-01T00:00:00Z",
         "updated": "2023-12-01T00:00:00Z",
     }
@@ -99,7 +110,7 @@ async def test_announcement_create(
     assert response.status_code == 200
     data = response.json()
 
-    assert len(data) == 3
+    assert len(data) == 4
 
 
 @pytest.mark.parametrize("client", [lazy_fixture("client_unauth"), lazy_fixture("client_auth")])
@@ -112,7 +123,7 @@ async def test_announcement_list_current(
     assert response.status_code == 200
     data = response.json()
 
-    assert len(data) == 2
+    assert len(data) == 2, data
     assert data[0] == {
         "id": "89abcdef-79ab-7cde-99e0-56b0d2e2dcdb",
         "title": "Test announcement 2",
@@ -142,6 +153,7 @@ async def test_announcement_fetch(
         "id": "01234568-79ab-7cde-a445-b9f117ca645d",
         "title": "Test announcement 1",
         "text": "This is only a drill!",
+        "active": True,
         "created": "2023-11-16T00:00:00Z",
         "updated": "2023-11-16T00:00:00Z",
     }
@@ -165,6 +177,7 @@ async def test_announcement_update(
         "id": "01234568-79ab-7cde-a445-b9f117ca645d",
         "title": "First test announcement",
         "text": "Drilling!",
+        "active": True,
         "created": "2023-11-16T00:00:00Z",
         "updated": "2023-12-01T00:00:00Z",
     }
@@ -185,5 +198,6 @@ async def test_announcement_delete(
     assert response.status_code == 200
     data = response.json()
 
-    assert len(data) == 1
+    assert len(data) == 2
     assert data[0]["id"] != "01234568-79ab-7cde-a445-b9f117ca645d"
+    assert data[1]["id"] != "01234568-79ab-7cde-a445-b9f117ca645d"

@@ -89,7 +89,7 @@ async def create_announcement(
     db: Annotated["Database", Depends(database)],
     announcement: api_announcements.AnnouncementRequest,
 ):
-    return await db.create_announcement(title=announcement.title, text=announcement.text)
+    return await db.create_announcement(title=announcement.title, text=announcement.text, active=announcement.active)
 
 
 @app.get("/v1/announcements/-/current", response_model=list[api_announcements.CurrentAnnouncementResponse])
@@ -121,7 +121,12 @@ async def update_announcement(
     existing_announcement: Annotated["Announcement", Depends(get_announcement)],
     new_announcement: api_announcements.AnnouncementRequest,
 ):
-    return await db.update_announcement(existing_announcement, title=new_announcement.title, text=new_announcement.text)
+    return await db.update_announcement(
+        existing_announcement,
+        title=new_announcement.title,
+        text=new_announcement.text,
+        active=new_announcement.active,
+    )
 
 
 @app.delete(
