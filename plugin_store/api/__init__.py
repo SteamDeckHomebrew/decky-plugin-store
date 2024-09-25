@@ -1,7 +1,7 @@
 from functools import reduce
 from operator import add
 from os import getenv
-from typing import Annotated, Optional
+from typing import Annotated
 
 import fastapi
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -146,7 +146,7 @@ async def plugins_list(
     query: str = "",
     tags: list[str] = fastapi.Query(default=[]),
     hidden: bool = False,
-    sort_by: Optional[SortType] = None,
+    sort_by: SortType | None = None,
     sort_direction: SortDirection = SortDirection.ASC,
     db: "Database" = Depends(database),
 ):

@@ -32,7 +32,7 @@ def construct_image_path(plugin_name: str, file_hash: str, mime_type: str) -> st
 
 async def _b2_upload(filename: str, binary: "bytes", mime_type: str = "b2/x-auto"):
     async with ClientSession(raise_for_status=True) as web:
-        auth_str = f"{getenv('B2_APP_KEY_ID')}:{getenv('B2_APP_KEY')}".encode("utf-8")
+        auth_str = f"{getenv('B2_APP_KEY_ID')}:{getenv('B2_APP_KEY')}".encode()
         async with web.get(
             "https://api.backblazeb2.com/b2api/v2/b2_authorize_account",
             headers={"Authorization": f"Basic {b64encode(auth_str).decode('utf-8')}"},
