@@ -8,6 +8,7 @@ from pytest_mock import MockFixture
 from sqlalchemy import func, select
 from sqlalchemy.exc import NoResultFound
 
+from api import rate_limit_storage
 from constants import SortDirection, SortType
 from database.models.Artifact import Tag
 
@@ -18,6 +19,17 @@ if TYPE_CHECKING:
     from httpx import AsyncClient
 
     from database.database import Database
+
+
+@pytest.mark.usefixtures("_mock_db")
+@pytest.mark.parametrize("client", [lazy_fixture("client_unauth"), lazy_fixture("client_auth")])
+async def test_increment_endpoint_is_rate_limited(mocker: "MockFixture", client: "AsyncClient"):
+    rate_limit_get = mocker.patch.object(rate_limit_storage, "get", mocker.Mock(return_value=99999999))
+
+    response = await client.post("/plugins/plugin/versions/1.2.3/increment")
+
+    assert rate_limit_get.called
+    assert response.status_code == 429
 
 
 @pytest.mark.asyncio

@@ -97,6 +97,11 @@ async def seed_db(plugin_store: "FastAPI", seed_db_session: "AsyncSession", mock
     return database
 
 
+@pytest_asyncio.fixture()
+async def _mock_db(plugin_store: "FastAPI", mocker: "MockFixture") -> None:
+    main.app.dependency_overrides[db_dependency] = lambda: mocker.AsyncMock()
+
+
 @pytest.fixture()
 def plugin_submit_data(request: "pytest.FixtureRequest") -> "tuple[dict, dict]":
     data = {
