@@ -75,12 +75,14 @@ async def test_increment_endpoint(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("client", [lazy_fixture("client_unauth"), lazy_fixture("client_auth")])
+@pytest.mark.parametrize("endpoint", ["/plugins", "/v1/announcements/-/current"])
 @pytest.mark.parametrize(
     ("origin", "result"),
     [("https://example.com", status.HTTP_400_BAD_REQUEST), ("https://steamloopback.host", status.HTTP_200_OK)],
 )
 async def test_plugin_list_endpoint_cors(
     client: "AsyncClient",
+    endpoint: str,
     origin: str,
     result: int,
 ):
@@ -89,7 +91,7 @@ async def test_plugin_list_endpoint_cors(
         "Access-Control-Request-Method": "GET",
         "Access-Control-Request-Headers": "X-Example",
     }
-    response = await client.options("/plugins", headers=headers)
+    response = await client.options(endpoint, headers=headers)
 
     assert response.status_code == result
 
