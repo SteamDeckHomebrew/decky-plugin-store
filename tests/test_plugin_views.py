@@ -8,6 +8,7 @@ from pytest_mock import MockFixture
 from sqlalchemy import func, select
 from sqlalchemy.exc import NoResultFound
 
+from api.dependencies import rate_limit_storage
 from constants import SortDirection, SortType
 from database.models.Artifact import Tag
 
@@ -18,6 +19,17 @@ if TYPE_CHECKING:
     from httpx import AsyncClient
 
     from database.database import Database
+
+
+@pytest.mark.usefixtures("_mock_db")
+@pytest.mark.parametrize("client", [lazy_fixture("client_unauth"), lazy_fixture("client_auth")])
+async def test_increment_endpoint_is_rate_limited(mocker: "MockFixture", client: "AsyncClient"):
+    rate_limit_get = mocker.patch.object(rate_limit_storage, "get", mocker.Mock(return_value=99999999))
+
+    response = await client.post("/plugins/plugin/versions/1.2.3/increment")
+
+    assert rate_limit_get.called
+    assert response.status_code == 429
 
 
 @pytest.mark.asyncio
@@ -40,7 +52,7 @@ async def test_increment_endpoint(
     isUpdate: "bool | None",
     mocker: "MockFixture",
 ):
-    mocker.patch("api.rate_limit")  # remove ratelimit
+    mocker.patch("api.endpoints.plugins.rate_limit")  # remove ratelimit
     if isUpdate is None:
         response = await client.post(f"/plugins/{plugin_name}/versions/{version_name}/increment")
     else:
@@ -63,12 +75,14 @@ async def test_increment_endpoint(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("client", [lazy_fixture("client_unauth"), lazy_fixture("client_auth")])
+@pytest.mark.parametrize("endpoint", ["/plugins", "/v1/announcements/-/current"])
 @pytest.mark.parametrize(
     ("origin", "result"),
     [("https://example.com", status.HTTP_400_BAD_REQUEST), ("https://steamloopback.host", status.HTTP_200_OK)],
 )
 async def test_plugin_list_endpoint_cors(
     client: "AsyncClient",
+    endpoint: str,
     origin: str,
     result: int,
 ):
@@ -77,7 +91,7 @@ async def test_plugin_list_endpoint_cors(
         "Access-Control-Request-Method": "GET",
         "Access-Control-Request-Headers": "X-Example",
     }
-    response = await client.options("/plugins", headers=headers)
+    response = await client.options(endpoint, headers=headers)
 
     assert response.status_code == result
 

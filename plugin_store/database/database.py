@@ -2,7 +2,7 @@ import logging
 from asyncio import Lock
 from datetime import datetime
 from os import getenv
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -207,7 +207,7 @@ class Database:
         name: "str | None" = None,
         tags: "Iterable[str] | None" = None,
         include_hidden: "bool" = False,
-        sort_by: Optional[SortType] = None,
+        sort_by: SortType | None = None,
         sort_direction: SortDirection = SortDirection.DESC,
         limit: int = 50,
         page: int = 0,

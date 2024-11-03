@@ -14,19 +14,19 @@ packages = []
 python = "^3.11"
 aiohttp = "^3.10.3"
 alembic = "^1.13.2"
-aiosqlite = "^0.20.0" # for async sqlite in sqlalchemy
 asgiref = "^3.8.1"
 discord-webhook = {version = "^1.3.1", extras = ["async"]}
-fastapi = "^0.112.0"
+fastapi = "^0.115.4"
 pydantic = "^1.10.17"
 python-multipart = "^0.0.9"  # for multipart forms in fastapi
 sqlalchemy = "^2.0.32"
-uvicorn = "^0.30.6"
+uvicorn = "^0.32.0"
 limits = {extras = ["redis"], version = "^3.13.0"}
 redis = "^5.0.8"
-asyncpg = "^0.29.0" # for async postgres in sqalchemy
+asyncpg = "^0.30.0" # for async postgres in sqalchemy
 
 [tool.poetry.group.dev.dependencies]
+aiosqlite = "^0.20.0" # for async sqlite in sqlalchemy
 black = "^24.8.0"
 flake8 = "^7.1.1"
 flake8-pyproject = "^1.2.3"

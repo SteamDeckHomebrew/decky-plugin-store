@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncEngine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 import main
-from api import database as db_dependency
+from database.database import database as db_dependency
 from database.database import Database
 from db_helpers import (
     create_test_db_engine,
@@ -95,6 +95,11 @@ async def seed_db(plugin_store: "FastAPI", seed_db_session: "AsyncSession", mock
     database = Database(seed_db_session, lock=mocker.MagicMock())
     main.app.dependency_overrides[db_dependency] = lambda: database
     return database
+
+
+@pytest_asyncio.fixture()
+async def _mock_db(plugin_store: "FastAPI", mocker: "MockFixture") -> None:
+    main.app.dependency_overrides[db_dependency] = lambda: mocker.AsyncMock()
 
 
 @pytest.fixture()
