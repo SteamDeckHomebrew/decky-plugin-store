@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncEngine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 import main
-from api import database as db_dependency
+from database.database import database as db_dependency
 from database.database import Database
 from db_helpers import (
     create_test_db_engine,

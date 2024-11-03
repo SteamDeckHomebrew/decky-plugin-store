@@ -8,7 +8,7 @@ from pytest_mock import MockFixture
 from sqlalchemy import func, select
 from sqlalchemy.exc import NoResultFound
 
-from api import rate_limit_storage
+from api.dependencies import rate_limit_storage
 from constants import SortDirection, SortType
 from database.models.Artifact import Tag
 
@@ -52,7 +52,7 @@ async def test_increment_endpoint(
     isUpdate: "bool | None",
     mocker: "MockFixture",
 ):
-    mocker.patch("api.rate_limit")  # remove ratelimit
+    mocker.patch("api.endpoints.plugins.rate_limit")  # remove ratelimit
     if isUpdate is None:
         response = await client.post(f"/plugins/{plugin_name}/versions/{version_name}/increment")
     else:
