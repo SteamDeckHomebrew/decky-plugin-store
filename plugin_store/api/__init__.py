@@ -17,6 +17,8 @@ from database.database import database, Database
 from database.models import Announcement
 from discord import post_announcement
 
+from sqlalchemy.exc import NoResultFound
+
 from .models import announcements as api_announcements
 from .models import delete as api_delete
 from .models import list as api_list
@@ -154,6 +156,16 @@ async def plugins_list(
     plugins = await db.search(db.session, query, tags, hidden, sort_by, sort_direction)
     return plugins
 
+@app.get("/plugins/{id}", response_model=api_list.ListPluginResponse, responses={404: {}})
+async def get_plugin(
+        id: int,
+        db: "Database" = Depends(database),
+):
+    try:
+        plugin = await db.get_plugin_by_id(db.session, id)
+        return plugin
+    except NoResultFound:
+        return Response(status_code=fastapi.status.HTTP_404_NOT_FOUND)
 
 @app.post("/plugins/{plugin_name}/versions/{version_name}/increment", responses={404: {}, 429: {}})
 async def increment_plugin_install_count(
