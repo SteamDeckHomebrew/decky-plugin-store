@@ -5,6 +5,7 @@ from os import getenv
 from typing import Optional, TYPE_CHECKING
 from uuid import UUID
 from zoneinfo import ZoneInfo
+from time import time
 
 from alembic import command
 from alembic.config import Config
@@ -40,7 +41,7 @@ AsyncSessionLocal = async_sessionmaker(bind=async_engine, autoflush=False, futur
 
 db_lock = Lock()
 plugin_cache = []
-
+last_time = 0
 
 async def get_session() -> "AsyncIterator[AsyncSession]":
     try:
@@ -49,7 +50,7 @@ async def get_session() -> "AsyncIterator[AsyncSession]":
         logger.exception(e)
 
 async def database(session: "AsyncSession" = Depends(get_session)) -> "AsyncIterator[Database]":
-    db = Database(session, db_lock, plugin_cache)
+    db = Database(session, db_lock, plugin_cache, last_time)
     try:
         yield db
     except Exception:
@@ -301,6 +302,6 @@ class Database:
         await session.commit()
         # if rowcount is zero then the version wasn't found
         v = r.rowcount == 1  # type: ignore[attr-defined]
-        if v:
-            await self.update_cache(session)
+#        if v:
+#            await self.update_cache(session)
         return v
