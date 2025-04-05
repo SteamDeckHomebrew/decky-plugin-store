@@ -13,7 +13,7 @@ from limits import parse, storage, strategies
 
 from cdn import upload_image, upload_version
 from constants import SortDirection, SortType, TEMPLATES_DIR
-from database.database import database, Database
+from database.database import database, Database, database_fake, fill_cache
 from database.models import Announcement
 from discord import post_announcement
 
@@ -45,6 +45,9 @@ rate_limit_storage = storage.RedisStorage("redis://redis_db:6379")
 increment_limit_per_plugin = parse("2/day")
 rate_limit = strategies.FixedWindowRateLimiter(rate_limit_storage)
 
+@app.on_event("startup")
+async def startup_event():
+    await fill_cache()
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: "Request", exc: "HTTPException") -> "Response":
@@ -140,18 +143,17 @@ async def delete_announcement(
 ):
     await db.delete_announcement(announcement_id)
 
-
 @app.get("/plugins", response_model=list[api_list.ListPluginResponse])
 async def plugins_list(
     query: str = "",
     tags: list[str] = fastapi.Query(default=[]),
     hidden: bool = False,
     sort_by: Optional[SortType] = None,
-    sort_direction: SortDirection = SortDirection.ASC,
-    db: "Database" = Depends(database),
+    sort_direction: SortDirection = SortDirection.DESC,
+    db: "Database" = Depends(database_fake),
 ):
     tags = list(filter(None, reduce(add, (el.split(",") for el in tags), [])))
-    plugins = await db.search(db.session, query, tags, hidden, sort_by, sort_direction)
+    plugins = await db.search(query, hidden, sort_by, sort_direction)
     return plugins
 
 
