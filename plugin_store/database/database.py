@@ -179,7 +179,7 @@ class Database:
                 await nested.rollback()
                 raise
             await session.commit()
-            await self.update_cache()
+            await self.update_cache(session)
             return await self.get_plugin_by_id(session, plugin.id)
 
     async def update_artifact(self, session: "AsyncSession", plugin: "Artifact", **kwargs) -> "Artifact":
@@ -199,7 +199,7 @@ class Database:
                 await nested.rollback()
                 raise
             await session.commit()
-        await self.update_cache()
+        await self.update_cache(session)
         return await self.get_plugin_by_id(session, plugin.id)
 
     async def insert_version(
@@ -284,7 +284,7 @@ class Database:
         await session.execute(delete(Version).where(Version.artifact_id == id))
         await session.execute(delete(Artifact).where(Artifact.id == id))
         r = await session.commit()
-        await self.update_cache()
+        await self.update_cache(session)
         return r
 
     async def increment_installs(
