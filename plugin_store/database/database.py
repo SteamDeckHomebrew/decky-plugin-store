@@ -50,7 +50,7 @@ async def get_session() -> "AsyncIterator[AsyncSession]":
         logger.exception(e)
 
 async def database(session: "AsyncSession" = Depends(get_session)) -> "AsyncIterator[Database]":
-    db = Database(session, db_lock, plugin_cache, last_time)
+    db = Database(session, db_lock, plugin_cache)
     try:
         yield db
     except Exception:
