@@ -1,7 +1,7 @@
 from functools import reduce
 from operator import add
 from os import getenv
-from typing import Annotated, Optional
+from typing import Annotated, Optional, Dict
 
 import fastapi
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -11,11 +11,12 @@ from fastapi.security import APIKeyHeader
 from fastapi.utils import is_body_allowed_for_status_code
 from limits import parse, storage, strategies
 
-from cdn import upload_image, upload_version
+from cdn import _b2_get_upload_url, upload_image
 from constants import SortDirection, SortType, TEMPLATES_DIR
 from database.database import database, Database, database_fake, fill_cache
 from database.models import Announcement
 from discord import post_announcement
+from plugin_store.database.utils import uuid7
 
 from .models import announcements as api_announcements
 from .models import delete as api_delete
@@ -25,6 +26,7 @@ from .models import update as api_update
 from .utils import FormBody, getIpHash, UUID7
 
 app = FastAPI()
+pendingSubmitContexts: Dict[UUID7, api_submit.PluginSubmitContext] = {}
 
 INDEX_PAGE = (TEMPLATES_DIR / "plugin_browser.html").read_text()
 
@@ -45,9 +47,11 @@ rate_limit_storage = storage.RedisStorage("redis://redis_db:6379")
 increment_limit_per_plugin = parse("2/day")
 rate_limit = strategies.FixedWindowRateLimiter(rate_limit_storage)
 
+
 @app.on_event("startup")
 async def startup_event():
     await fill_cache()
+
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: "Request", exc: "HTTPException") -> "Response":
@@ -143,6 +147,7 @@ async def delete_announcement(
 ):
     await db.delete_announcement(announcement_id)
 
+
 @app.get("/plugins", response_model=list[api_list.ListPluginResponse])
 async def plugins_list(
     query: str = "",
@@ -184,43 +189,72 @@ async def auth_check():
 @app.post(
     "/__submit",
     dependencies=[Depends(auth_token)],
-    response_model=api_submit.SubmitProductResponse,
-    status_code=fastapi.status.HTTP_201_CREATED,
+    response_model=api_submit.UploadURLResponse,
+    status_code=fastapi.status.HTTP_200_OK,
 )
 async def submit_release(
     data: "api_submit.SubmitProductRequest" = FormBody(api_submit.SubmitProductRequest),
     db: "Database" = Depends(database),
 ):
     plugin = await db.get_plugin_by_name(db.session, data.name)
-
-    if plugin and data.force:
-        await db.delete_plugin(db.session, plugin.id)
-        plugin = None
-
-    image_path = await upload_image(data.name, data.image)
+    submit_context = api_submit.PluginSubmitContext(**data.dict())
 
     if plugin is not None:
         if data.version_name in [i.name for i in plugin.versions]:
             raise HTTPException(status_code=400, detail="Version already exists")
-        plugin = await db.update_artifact(
-            db.session,
-            plugin,
-            author=data.author,
-            description=data.description,
-            image_path=image_path,
-            tags=list(filter(None, reduce(add, (el.split(",") for el in data.tags), []))),
-        )
+        submit_context.artifactAction = api_submit.ArtifactAction.UPDATE
     else:
+        submit_context.artifactAction = api_submit.ArtifactAction.INSERT
+    
+    submit_context.plugin = plugin
+    submit_context.id = uuid7() # type: ignore
+    pendingSubmitContexts[submit_context.id] = submit_context
+
+    _web, uploadUrl, authToken = await _b2_get_upload_url()
+
+    return api_submit.UploadURLResponse(contextId=submit_context.id, uploadUrl=uploadUrl, authToken=authToken)
+
+
+@app.post(
+    "/__finalize",
+    dependencies=[Depends(auth_token)],
+    response_model=api_submit.SubmitProductResponse,
+    status_code=fastapi.status.HTTP_201_CREATED,
+)
+async def finalize_release(
+    data: "api_submit.FinalizeSubmissionRequest" = FormBody(api_submit.FinalizeSubmissionRequest),
+    db: "Database" = Depends(database),
+):
+    if not data.contextId in pendingSubmitContexts:
+        raise HTTPException(status_code=404, detail="Submission context not found")
+    context = pendingSubmitContexts[data.contextId]
+
+    if context.plugin and context.force:
+        await db.delete_plugin(db.session, context.plugin.id)
+        context.artifactAction = api_submit.ArtifactAction.INSERT
+
+    image_path = await upload_image(context.name, context.image)
+
+    if context.artifactAction == api_submit.ArtifactAction.INSERT:
         plugin = await db.insert_artifact(
             session=db.session,
-            name=data.name,
-            author=data.author,
-            description=data.description,
+            name=context.name,
+            author=context.author,
+            description=context.description,
             image_path=image_path,
-            tags=list(filter(None, reduce(add, (el.split(",") for el in data.tags), []))),
+            tags=list(filter(None, reduce(add, (el.split(",") for el in context.tags), []))),
+        )
+    else:
+        plugin = await db.update_artifact(
+            db.session,
+            context.plugin,
+            author=context.author,
+            description=context.description,
+            image_path=image_path,
+            tags=list(filter(None, reduce(add, (el.split(",") for el in context.tags), []))),
         )
 
-    version = await db.insert_version(db.session, plugin.id, name=data.version_name, **await upload_version(data.file))
+    version = await db.insert_version(db.session, plugin.id, name=context.version_name, hash=data.contentHash)
 
     await db.session.refresh(plugin)
     await post_announcement(plugin, version)
