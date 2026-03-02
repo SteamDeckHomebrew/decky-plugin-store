@@ -197,20 +197,25 @@ async def submit_release(
     db: "Database" = Depends(database),
 ):
     plugin = await db.get_plugin_by_name(db.session, data.name)
-    submit_context = api_submit.PluginSubmitContext(**data.dict())
+    if plugin is not None and data.version_name in [i.name for i in plugin.versions]:
+        raise HTTPException(status_code=400, detail="Version already exists")
 
-    if plugin is not None:
-        if data.version_name in [i.name for i in plugin.versions]:
-            raise HTTPException(status_code=400, detail="Version already exists")
-        submit_context.artifactAction = api_submit.ArtifactAction.UPDATE
-    else:
-        submit_context.artifactAction = api_submit.ArtifactAction.INSERT
-    
-    submit_context.plugin = plugin
-    submit_context.id = uuid7() # type: ignore
+    submit_context = api_submit.PluginSubmitContext(
+        id=uuid7(),  # type: ignore
+        name=data.name,
+        author=data.author,
+        description=data.description,
+        tags=data.tags,
+        version_name=data.version_name,
+        image=data.image,
+        force=data.force,
+        plugin=plugin,
+        artifactAction=api_submit.ArtifactAction.UPDATE if plugin is not None else api_submit.ArtifactAction.INSERT,
+    )
+
     pendingSubmitContexts[submit_context.id] = submit_context
 
-    _web, uploadUrl, authToken = await _b2_get_upload_url()
+    uploadUrl, authToken = await _b2_get_upload_url()
 
     return api_submit.UploadURLResponse(contextId=submit_context.id, uploadUrl=uploadUrl, authToken=authToken)
 
@@ -233,7 +238,7 @@ async def finalize_release(
         await db.delete_plugin(db.session, context.plugin.id)
         context.artifactAction = api_submit.ArtifactAction.INSERT
 
-    image_path = await upload_image(context.name, context.image) # type: ignore
+    image_path = await upload_image(context.name, context.image)  # type: ignore
 
     if context.artifactAction == api_submit.ArtifactAction.INSERT:
         plugin = await db.insert_artifact(

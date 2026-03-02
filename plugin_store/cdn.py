@@ -31,7 +31,7 @@ def construct_image_path(plugin_name: str, file_hash: str, mime_type: str) -> st
 
 
 async def _b2_get_upload_url():
-    async with ClientSession(raise_for_status=True) as web:
+    async with ClientSession() as web:
         auth_str = f"{getenv('B2_APP_KEY_ID')}:{getenv('B2_APP_KEY')}".encode("utf-8")
         async with web.get(
             "https://api.backblazeb2.com/b2api/v2/b2_authorize_account",
@@ -42,7 +42,7 @@ async def _b2_get_upload_url():
             auth_res_data = await auth_res.json()
             retry_count = 0
             while True:
-                async with web.get(
+                async with web.post(
                     f"{auth_res_data['apiUrl']}/b2api/v2/b2_get_upload_url",
                     json={"bucketId": getenv("B2_BUCKET_ID")},
                     headers={"Authorization": auth_res_data["authorizationToken"]},
@@ -54,32 +54,29 @@ async def _b2_get_upload_url():
                         await sleep(retry_count * 5)
                         continue
                     if not res_data.status == 200:
-                        res_data.raise_for_status()
                         raise B2UploadError("B2 GET_UPLOAD_URL ERROR ", await res_data.read())
                     res_data = await res_data.json()
-                    return (web, res_data["uploadUrl"], res_data["authorizationToken"])
+                    return (res_data["uploadUrl"], res_data["authorizationToken"])
 
 
 async def _b2_upload(filename: str, binary: "bytes", mime_type: str = "b2/x-auto"):
-    result = await _b2_get_upload_url()
-    if result is None:
-        raise B2UploadError()
-    web, uploadUrl, authToken = result
-    res_data = await web.post(
-        uploadUrl,
-        data=binary,
-        headers={
-            "Authorization": authToken,
-            "Content-Type": mime_type,
-            "Content-Length": str(len(binary)),
-            "X-Bz-Content-Sha1": sha1(binary).hexdigest(),
-            "X-Bz-File-Name": filename,
-        },
-    )
-    t = await res_data.text()
-    if res_data.status == 200:
-        return t
-    raise B2UploadError(t)
+    uploadUrl, authToken = await _b2_get_upload_url()
+    async with ClientSession() as web:
+        res_data = await web.post(
+            uploadUrl,
+            data=binary,
+            headers={
+                "Authorization": authToken,
+                "Content-Type": mime_type,
+                "Content-Length": str(len(binary)),
+                "X-Bz-Content-Sha1": sha1(binary).hexdigest(),
+                "X-Bz-File-Name": filename,
+            },
+        )
+        t = await res_data.text()
+        if res_data.status == 200:
+            return t
+        raise B2UploadError(t)
 
 
 async def b2_upload(filename: str, binary: "bytes", mime_type: str = "b2/x-auto"):

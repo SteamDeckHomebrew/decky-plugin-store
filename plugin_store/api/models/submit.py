@@ -1,6 +1,6 @@
 from enum import Enum
+from typing import Optional
 
-from fastapi import UploadFile
 from pydantic import BaseModel, HttpUrl
 
 from api.models.base import BasePlugin, BasePluginResponse
@@ -17,7 +17,6 @@ class SubmitProductRequest(BaseModel):
     tags: list[str]  # Comma separated values
     version_name: str
     image: HttpUrl
-    file: UploadFile
     force: bool = False
 
 
@@ -31,7 +30,7 @@ class UploadURLResponse(BaseModel):
 
 class PluginSubmitContext(SubmitProductRequest):
     id: UUID7
-    plugin: BasePlugin
+    plugin: Optional[BasePlugin]
     artifactAction: ArtifactAction
 
 class FinalizeSubmissionRequest(BaseModel):
