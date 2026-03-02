@@ -16,7 +16,7 @@ from constants import SortDirection, SortType, TEMPLATES_DIR
 from database.database import database, Database, database_fake, fill_cache
 from database.models import Announcement
 from discord import post_announcement
-from plugin_store.database.utils import uuid7
+from database.utils import uuid7
 
 from .models import announcements as api_announcements
 from .models import delete as api_delete
@@ -233,7 +233,7 @@ async def finalize_release(
         await db.delete_plugin(db.session, context.plugin.id)
         context.artifactAction = api_submit.ArtifactAction.INSERT
 
-    image_path = await upload_image(context.name, context.image)
+    image_path = await upload_image(context.name, context.image) # type: ignore
 
     if context.artifactAction == api_submit.ArtifactAction.INSERT:
         plugin = await db.insert_artifact(
@@ -247,7 +247,7 @@ async def finalize_release(
     else:
         plugin = await db.update_artifact(
             db.session,
-            context.plugin,
+            await db.get_plugin_by_id(db.session, context.plugin.id),
             author=context.author,
             description=context.description,
             image_path=image_path,

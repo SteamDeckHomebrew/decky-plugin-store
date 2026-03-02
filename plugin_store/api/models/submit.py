@@ -3,9 +3,8 @@ from enum import Enum
 from fastapi import UploadFile
 from pydantic import BaseModel, HttpUrl
 
-from api.models.base import BasePluginResponse
-from plugin_store.api.utils import UUID7
-from plugin_store.database.models import Artifact
+from api.models.base import BasePlugin, BasePluginResponse
+from api.utils import UUID7
 
 class ArtifactAction(Enum):
     INSERT = 0
@@ -32,7 +31,7 @@ class UploadURLResponse(BaseModel):
 
 class PluginSubmitContext(SubmitProductRequest):
     id: UUID7
-    plugin: Artifact
+    plugin: BasePlugin
     artifactAction: ArtifactAction
 
 class FinalizeSubmissionRequest(BaseModel):
