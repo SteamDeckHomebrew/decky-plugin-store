@@ -32,9 +32,20 @@ UTC = ZoneInfo("UTC")
 db_url = getenv("DB_URL")
 if not db_url:
     raise Exception("DB_URL not provided or invalid!")
+
+engine_args = {
+    "pool_pre_ping": True
+}
+
+if db_url.startswith("postgresql"):
+    engine_args |= {
+        "pool_size": 80,
+        "max_overflow": 20
+    }
+
 async_engine = create_async_engine(
     db_url,
-    pool_pre_ping=True,
+    **engine_args
     # echo=settings.ECHO_SQL,
 )
 AsyncSessionLocal = async_sessionmaker(bind=async_engine, autoflush=False, future=True, expire_on_commit=False)
