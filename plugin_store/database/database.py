@@ -5,7 +5,6 @@ from os import getenv
 from typing import Optional, TYPE_CHECKING
 from uuid import UUID
 from zoneinfo import ZoneInfo
-from time import time
 
 from alembic import command
 from alembic.config import Config
@@ -51,8 +50,7 @@ async_engine = create_async_engine(
 AsyncSessionLocal = async_sessionmaker(bind=async_engine, autoflush=False, future=True, expire_on_commit=False)
 
 db_lock = Lock()
-plugin_cache = []
-last_time = 0
+
 
 async def get_session() -> "AsyncIterator[AsyncSession]":
     try:
@@ -60,8 +58,9 @@ async def get_session() -> "AsyncIterator[AsyncSession]":
     except SQLAlchemyError as e:
         logger.exception(e)
 
+
 async def database(session: "AsyncSession" = Depends(get_session)) -> "AsyncIterator[Database]":
-    db = Database(session, db_lock, plugin_cache)
+    db = Database(session, db_lock)
     try:
         yield db
     except Exception:
@@ -70,23 +69,11 @@ async def database(session: "AsyncSession" = Depends(get_session)) -> "AsyncIter
     else:
         await session.close()
 
-async def database_fake() -> "AsyncIterator[Database]":
-    db = Database(None, db_lock, plugin_cache)
-    try:
-        yield db
-    except Exception:
-        raise
-
-async def fill_cache():
-    db = Database(AsyncSessionLocal(), db_lock, plugin_cache)
-    await db.update_cache(db.session)
-    await db.session.close()
 
 class Database:
-    def __init__(self, session, lock, plugin_cache):
+    def __init__(self, session, lock):
         self.session = session
         self.lock = lock
-        self.plugin_cache: list = plugin_cache
 
     @sync_to_async()
     def init(self):
@@ -190,7 +177,6 @@ class Database:
                 await nested.rollback()
                 raise
             await session.commit()
-            await self.update_cache(session)
             return await self.get_plugin_by_id(session, plugin.id)
 
     async def update_artifact(self, session: "AsyncSession", plugin: "Artifact", **kwargs) -> "Artifact":
@@ -210,7 +196,6 @@ class Database:
                 await nested.rollback()
                 raise
             await session.commit()
-        await self.update_cache(session)
         return await self.get_plugin_by_id(session, plugin.id)
 
     async def insert_version(
@@ -227,7 +212,7 @@ class Database:
             await session.commit()
         return version
 
-    async def _search(
+    async def search(
         self,
         session: "AsyncSession",
         name: "str | None" = None,
@@ -263,21 +248,6 @@ class Database:
 
         result = (await session.execute(statement)).scalars().all()
         return result or []
-    
-    async def update_cache(self, session):
-        self.plugin_cache.clear()
-        self.plugin_cache.extend(await self._search(session, limit=500, include_hidden=True))
-    
-    async def search(
-        self,
-        name: "str | None" = "",
-        include_hidden: "bool" = False,
-        sort_by: Optional[SortType] = None,
-        sort_direction: SortDirection = SortDirection.DESC
-    ) -> "Sequence[Artifact]":
-        sort_key = {SortType.NAME: "name", SortType.DOWNLOADS: "downloads", SortType.DATE: "created", "id": "id"}[sort_by or "id"]
-        return sorted([i for i in self.plugin_cache if i.visible is not include_hidden and name.lower() in i.name.lower()],
-                      key=lambda x: getattr(x, sort_key), reverse=sort_direction==SortDirection.ASC)
 
     async def get_plugin_by_name(self, session: "AsyncSession", name: str) -> "Artifact | None":
         statement = select(Artifact).where(Artifact.name == name)
@@ -294,9 +264,7 @@ class Database:
         await session.execute(delete(PluginTag).where(PluginTag.c.artifact_id == id))
         await session.execute(delete(Version).where(Version.artifact_id == id))
         await session.execute(delete(Artifact).where(Artifact.id == id))
-        r = await session.commit()
-        await self.update_cache(session)
-        return r
+        return await session.commit()
 
     async def increment_installs(
         self, session: "AsyncSession", plugin_name: str, version_name: str, isUpdate: bool
@@ -312,7 +280,4 @@ class Database:
         r = await session.execute(statement.where((Version.name == version_name) & (Version.artifact_id == plugin_id)))
         await session.commit()
         # if rowcount is zero then the version wasn't found
-        v = r.rowcount == 1  # type: ignore[attr-defined]
-#        if v:
-#            await self.update_cache(session)
-        return v
+        return r.rowcount == 1  # type: ignore[attr-defined]
