@@ -33,7 +33,8 @@ if not db_url:
     raise Exception("DB_URL not provided or invalid!")
 
 engine_args = {
-    "pool_pre_ping": True
+    "pool_pre_ping": True,
+    "expire_on_commit": False
 }
 
 if db_url.startswith("postgresql"):
@@ -55,19 +56,18 @@ db_lock = Lock()
 
 
 async def get_session() -> "AsyncIterator[AsyncSession]":
-    s = AsyncSessionLocal()
-    try:
-        yield s
-    except SQLAlchemyError as e:
-        logger.exception(e)
-    finally:
-        await s.close()
+    async with AsyncSessionLocal() as s:
+        try:
+            yield s
+        except SQLAlchemyError as e:
+            logger.exception(e)
 
 async def database(session: "AsyncSession" = Depends(get_session)) -> "AsyncIterator[Database]":
     db = Database(session, db_lock)
     try:
         yield db
-    except Exception:
+    except Exception as e:
+        logger.exception(e)
         await session.rollback()
         raise
 
