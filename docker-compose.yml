@@ -32,6 +32,11 @@ services:
       - POSTGRES_PASSWORD
     volumes: 
       - ${DB_PATH}:/var/lib/postgresql/data
+    healthcheck:
+      test: pg_isready -U myuser -d db_prod
+      interval: 10s
+      timeout: 3s
+      retries: 3
 
 networks:
   plugins-network:
