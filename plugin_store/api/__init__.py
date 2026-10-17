@@ -5,6 +5,7 @@ from typing import Annotated, Optional
 
 import fastapi
 from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.security import APIKeyHeader
@@ -16,6 +17,7 @@ from constants import SortDirection, SortType, TEMPLATES_DIR
 from database.database import database, Database
 from database.models import Announcement
 from discord import post_announcement
+from traceback import print_exc
 
 from .models import announcements as api_announcements
 from .models import delete as api_delete
@@ -57,6 +59,14 @@ async def http_exception_handler(request: "Request", exc: "HTTPException") -> "R
         headers=headers,
     )
 
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    print("Validation error:", exc.errors())
+    print("Body:", exc.body)
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors()},
+    )
 
 async def auth_token(authorization: str = Depends(APIKeyHeader(name="Authorization"))) -> None:
     if authorization != getenv("SUBMIT_AUTH_KEY"):
@@ -189,6 +199,7 @@ async def submit_release(
     data: "api_submit.SubmitProductRequest" = FormBody(api_submit.SubmitProductRequest),
     db: "Database" = Depends(database),
 ):
+    print("Processing new plugin:", data)
     plugin = await db.get_plugin_by_name(db.session, data.name)
 
     if plugin and data.force:
