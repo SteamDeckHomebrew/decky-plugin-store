@@ -33,8 +33,7 @@ if not db_url:
     raise Exception("DB_URL not provided or invalid!")
 
 engine_args = {
-    "pool_pre_ping": True,
-    "expire_on_commit": False
+    "pool_pre_ping": True
 }
 
 if db_url.startswith("postgresql"):
