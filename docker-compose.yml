@@ -13,6 +13,9 @@ services:
         - plugins-network
         - default
     restart: unless-stopped
+    depends_on:
+      postgres_db:
+        condition: service_healthy
 
   redis_db:
     image: redis:latest
