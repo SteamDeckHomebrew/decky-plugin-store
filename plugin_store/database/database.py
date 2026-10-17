@@ -70,8 +70,6 @@ async def database(session: "AsyncSession" = Depends(get_session)) -> "AsyncIter
     except Exception:
         await session.rollback()
         raise
-    else:
-        await session.close()
 
 
 class Database:
