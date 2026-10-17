@@ -39,11 +39,11 @@ class Artifact(Base):
     description: Mapped[str] = Column(Text)
     _image_path: Mapped[str | None] = Column("image_path", Text, nullable=True)
     tags: "Mapped[list[Tag]]" = relationship(
-        "Tag", secondary=PluginTag, cascade="all, delete", order_by="Tag.tag", lazy="selectin"
+        "Tag", secondary=PluginTag, cascade="all, delete", order_by="Tag.tag", lazy="subquery"
     )
     # idx_version_artifact_map
     versions: "Mapped[list[Version]]" = relationship(
-        "Version", cascade="all, delete", lazy="selectin", order_by="Version.created.desc(), Version.id.asc()"
+        "Version", cascade="all, delete", lazy="subquery", order_by="Version.created.desc(), Version.id.asc()"
     )
     visible: Mapped[bool] = Column(Boolean, default=True)
 
