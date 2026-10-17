@@ -13,7 +13,7 @@ from fastapi import Depends
 from sqlalchemy import asc, desc
 from sqlalchemy.exc import NoResultFound, SQLAlchemyError
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession, create_async_engine
-from sqlalchemy.orm import subqueryload
+from sqlalchemy.orm import selectinload
 from sqlalchemy.sql import delete, select, update
 
 from constants import SortDirection, SortType
@@ -34,18 +34,18 @@ if not db_url:
     raise Exception("DB_URL not provided or invalid!")
 
 engine_args = {
-    "pool_pre_ping": True,
+    "pool_pre_ping": False,
     "echo": bool(getenv("DB_DEBUG", False)),
     "echo_pool": bool(getenv("DB_POOL_DEBUG", False))
 }
 
-if db_url.startswith("postgresql"):
-    engine_args |= {
-        "pool_size": 80,
-        "max_overflow": 20,
-        "pool_timeout": 30,
-        "pool_recycle": 1800
-    }
+# if db_url.startswith("postgresql"):
+#     engine_args |= {
+#         "pool_size": 80,
+#         "max_overflow": 20,
+#         "pool_timeout": 30,
+#         "pool_recycle": 1800
+#     }
 
 async_engine = create_async_engine(
     db_url,
@@ -227,8 +227,8 @@ class Database:
         # page: int = 0,
     ) -> "Sequence[Artifact]":
         statement = select(Artifact).options(
-            subqueryload(Artifact.tags),
-            subqueryload(Artifact.versions)
+            selectinload(Artifact.tags),
+            selectinload(Artifact.versions)
         )
         if name:
             statement = statement.where(Artifact.name.like(f"%{name}%"))
