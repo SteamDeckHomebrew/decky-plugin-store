@@ -26,6 +26,7 @@ limits = {extras = ["redis"], version = "^5.8.0"}
 redis = "^5.0.8"
 asyncpg = "^0.32.0" # for async postgres in sqalchemy
 httpx = "^0.28.1"
+semver = "^3.1.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^26.10.1"

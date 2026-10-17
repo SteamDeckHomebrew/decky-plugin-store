@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 from alembic import command
 from alembic.config import Config
 from asgiref.sync import sync_to_async
-from fastapi import Depends, Response, status
+from fastapi import Depends
 from sqlalchemy import asc, desc
 from sqlalchemy.exc import NoResultFound, SQLAlchemyError
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession, create_async_engine

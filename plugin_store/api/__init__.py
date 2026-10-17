@@ -3,11 +3,12 @@ from operator import add
 from os import getenv
 from typing import Annotated, Optional
 
+import logging
 import fastapi
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.security import APIKeyHeader
 from fastapi.utils import is_body_allowed_for_status_code
 from limits import parse, storage, strategies
@@ -17,6 +18,7 @@ from constants import SortDirection, SortType, TEMPLATES_DIR
 from database.database import database, Database
 from database.models import Announcement
 from discord import post_announcement
+from semver import Version
 from traceback import print_exc
 
 from .models import announcements as api_announcements
@@ -29,11 +31,32 @@ from .utils import FormBody, getIpHash, UUID7
 
 app = FastAPI()
 
+logger = logging.getLogger()
+
 INDEX_PAGE = (TEMPLATES_DIR / "plugin_browser.html").read_text()
+MIN_VER=Version.parse("3.3.0")
 
 cors_origins = [
     "https://steamloopback.host",
 ]
+
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    try:
+        if "X-Decky-Version" in request.headers:
+            ver_str_raw = request.headers["X-Decky-Version"]
+            if ver_str_raw.startswith("v"):
+                ver_str = ver_str_raw.strip().lstrip("v")
+                ver = Version.parse(ver_str)
+
+                if ver < MIN_VER and not (ver.major == MIN_VER.major and ver.minor == MIN_VER.minor and ver.patch == MIN_VER.patch):
+                    return PlainTextResponse(status_code=426, content="Unsupported loader version, please upgrade.")
+
+    except Exception as e:
+        logger.exception(e)
+        pass
+
+    return await call_next(request)
 
 app.add_middleware(
     CORSMiddleware,
