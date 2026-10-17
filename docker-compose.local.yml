@@ -35,7 +35,7 @@ services:
     volumes:
       - store-postgres:/var/lib/postgresql/data
     healthcheck:
-      test: pg_isready -U myuser -d db_prod
+      test: pg_isready -U decky -d decky
       interval: 10s
       timeout: 3s
       retries: 3
