@@ -34,7 +34,8 @@ if not db_url:
 
 engine_args = {
     "pool_pre_ping": True,
-    "echo": getenv("DB_DEBUG", False)
+    "echo": getenv("DB_DEBUG", False),
+    "echo_pool": getenv("DB_POOL_DEBUG", False)
 }
 
 if db_url.startswith("postgresql"):
