@@ -1,14 +1,14 @@
 from typing import TYPE_CHECKING
 
 import pytest
-from pytest_lazyfixture import lazy_fixture
+from pytest_lazy_fixtures import lf
 
 if TYPE_CHECKING:
     from httpx import AsyncClient
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("client", [lazy_fixture("client_unauth"), lazy_fixture("client_auth")])
+@pytest.mark.parametrize("client", [lf("client_unauth"), lf("client_auth")])
 async def test_index_endpoint(client: "AsyncClient", index_template: str):
     response = await client.get("/")
     assert response.status_code == 200
@@ -18,7 +18,7 @@ async def test_index_endpoint(client: "AsyncClient", index_template: str):
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("client", "return_code"),
-    [(lazy_fixture("client_unauth"), 403), (lazy_fixture("client_auth"), 200)],
+    [(lf("client_unauth"), 403), (lf("client_auth"), 200)],
 )
 async def test_auth_endpoint(client: "AsyncClient", return_code: int):
     response = await client.post("/__auth")

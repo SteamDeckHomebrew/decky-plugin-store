@@ -3,7 +3,7 @@ from urllib.parse import urlencode
 
 import pytest
 from fastapi import status
-from pytest_lazyfixture import lazy_fixture
+from pytest_lazy_fixtures import lf
 from pytest_mock import MockFixture
 from sqlalchemy import func, select
 from sqlalchemy.exc import NoResultFound
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("client", [lazy_fixture("client_unauth"), lazy_fixture("client_auth")])
+@pytest.mark.parametrize("client", [lf("client_unauth"), lf("client_auth")])
 @pytest.mark.parametrize("isUpdate", [True, False, None], ids=["update", "download", "no_isUpdate"])
 @pytest.mark.parametrize(
     ("plugin_name", "version_name", "return_code"),
@@ -62,7 +62,7 @@ async def test_increment_endpoint(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("client", [lazy_fixture("client_unauth"), lazy_fixture("client_auth")])
+@pytest.mark.parametrize("client", [lf("client_unauth"), lf("client_auth")])
 @pytest.mark.parametrize(
     ("origin", "result"),
     [("https://example.com", status.HTTP_400_BAD_REQUEST), ("https://steamloopback.host", status.HTTP_200_OK)],
@@ -83,7 +83,7 @@ async def test_plugin_list_endpoint_cors(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("client", [lazy_fixture("client_unauth"), lazy_fixture("client_auth")])
+@pytest.mark.parametrize("client", [lf("client_unauth"), lf("client_auth")])
 @pytest.mark.parametrize(
     ("query_filter", "query_plugin_ids"),
     [
@@ -473,7 +473,7 @@ async def test_submit_endpoint_requires_auth(client_unauth: "AsyncClient"):
     ),
     [
         (
-            lazy_fixture("seed_db"),
+            lf("seed_db"),
             "new-plugin",
             9,
             "new-plugin",
@@ -493,7 +493,7 @@ async def test_submit_endpoint_requires_auth(client_unauth: "AsyncClient"):
             True,
         ),
         (
-            lazy_fixture("seed_db"),
+            lf("seed_db"),
             "plugin-1",
             1,
             "plugin-1",
@@ -534,7 +534,7 @@ async def test_submit_endpoint_requires_auth(client_unauth: "AsyncClient"):
             True,
         ),
         (
-            lazy_fixture("seed_db"),
+            lf("seed_db"),
             "plugin-5",
             5,
             "plugin-5",
@@ -574,7 +574,7 @@ async def test_submit_endpoint_requires_auth(client_unauth: "AsyncClient"):
             None,
             False,
         ),
-        (lazy_fixture("seed_db"), "plugin-2", 1, "plugin-2", 400, [], "", "", "Version already exists", True),
+        (lf("seed_db"), "plugin-2", 1, "plugin-2", 400, [], "", "", "Version already exists", True),
     ],
     ids=[
         "creates_new_plugin",

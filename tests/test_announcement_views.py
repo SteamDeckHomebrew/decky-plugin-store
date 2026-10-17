@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from fastapi import status
-from pytest_lazyfixture import lazy_fixture
+from pytest_lazy_fixtures import lf
 
 if TYPE_CHECKING:
     from freezegun.api import FrozenDateTimeFactory
@@ -26,7 +26,7 @@ async def test_endpoints_requiring_auth(client_unauth: "AsyncClient", endpoint: 
     assert response.status_code == 403
 
 
-@pytest.mark.parametrize("client", [lazy_fixture("client_unauth"), lazy_fixture("client_auth")])
+@pytest.mark.parametrize("client", [lf("client_unauth"), lf("client_auth")])
 @pytest.mark.parametrize(
     ("origin", "result"),
     [("https://example.com", status.HTTP_400_BAD_REQUEST), ("https://steamloopback.host", status.HTTP_200_OK)],
@@ -113,7 +113,7 @@ async def test_announcement_create(
     assert len(data) == 4
 
 
-@pytest.mark.parametrize("client", [lazy_fixture("client_unauth"), lazy_fixture("client_auth")])
+@pytest.mark.parametrize("client", [lf("client_unauth"), lf("client_auth")])
 async def test_announcement_list_current(
     client: "AsyncClient",
     seed_db: "Database",
