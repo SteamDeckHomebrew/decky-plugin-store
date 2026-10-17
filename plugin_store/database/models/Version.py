@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, Text, UniqueConstraint
+from sqlalchemy import Column, ForeignKey, Integer, Text, UniqueConstraint, Index, asc, desc
 
 import constants
 
@@ -8,7 +8,10 @@ from .Base import Base
 
 class Version(Base):
     __tablename__ = "versions"
-    __table_args__ = (UniqueConstraint("artifact_id", "name", name="unique_version_artifact_id_name"),)
+    __table_args__ = (
+        UniqueConstraint("artifact_id", "name", name="unique_version_artifact_id_name"),
+        Index("idx_version_artifact_map", "artifact_id", desc("added_on"), asc("id"))
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     artifact_id = Column(Integer, ForeignKey("artifacts.id"))

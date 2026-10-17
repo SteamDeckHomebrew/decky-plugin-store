@@ -1,7 +1,7 @@
 from datetime import datetime
 from urllib.parse import quote
 
-from sqlalchemy import Boolean, Column, ForeignKey, func, Integer, select, Table, Text, UniqueConstraint
+from sqlalchemy import Boolean, Column, ForeignKey, func, Integer, select, Table, Text, UniqueConstraint, Index
 from sqlalchemy.orm import column_property, Mapped, relationship
 
 import constants
@@ -21,13 +21,17 @@ class Tag(Base):
 PluginTag = Table(
     "plugin_tag",
     Base.metadata,
-    Column("artifact_id", Integer, ForeignKey("artifacts.id")),
-    Column("tag_id", Integer, ForeignKey("tags.id")),
+    Column("artifact_id", Integer, ForeignKey("artifacts.id"), primary_key=True),
+    Column("tag_id", Integer, ForeignKey("tags.id"), primary_key=True, index=True),
 )
 
 
 class Artifact(Base):
     __tablename__ = "artifacts"
+    __table_args__ = (
+        UniqueConstraint("name", name="unique_artifact_name"),
+        Index("idx_visible_plugins", "id", postgresql_where=("visible IS TRUE"))
+    )
 
     id: Mapped[int] = Column(Integer, autoincrement=True, primary_key=True)
     name: Mapped[str] = Column(Text)
@@ -37,6 +41,7 @@ class Artifact(Base):
     tags: "Mapped[list[Tag]]" = relationship(
         "Tag", secondary=PluginTag, cascade="all, delete", order_by="Tag.tag", lazy="selectin"
     )
+    # idx_version_artifact_map
     versions: "Mapped[list[Version]]" = relationship(
         "Version", cascade="all, delete", lazy="selectin", order_by="Version.created.desc(), Version.id.asc()"
     )
@@ -57,7 +62,6 @@ class Artifact(Base):
         select(func.max(Version.created)).where(Version.artifact_id == id).correlate_except(Version).scalar_subquery()
     )
 
-    UniqueConstraint("name")
 
     @property
     def image_url(self):
