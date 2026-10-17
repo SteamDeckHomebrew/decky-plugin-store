@@ -13,6 +13,7 @@ from fastapi import Depends
 from sqlalchemy import asc, desc
 from sqlalchemy.exc import NoResultFound, SQLAlchemyError
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession, create_async_engine
+from sqlalchemy.orm import subqueryload
 from sqlalchemy.sql import delete, select, update
 
 from constants import SortDirection, SortType
@@ -222,10 +223,13 @@ class Database:
         include_hidden: "bool" = False,
         sort_by: Optional[SortType] = None,
         sort_direction: SortDirection = SortDirection.DESC,
-        limit: int = 50,
-        page: int = 0,
+        # limit: int = 50,
+        # page: int = 0,
     ) -> "Sequence[Artifact]":
-        statement = select(Artifact).offset(limit * page)
+        statement = select(Artifact).options(
+            subqueryload(Artifact.tags),
+            subqueryload(Artifact.versions)
+        )
         if name:
             statement = statement.where(Artifact.name.like(f"%{name}%"))
         if tags:
