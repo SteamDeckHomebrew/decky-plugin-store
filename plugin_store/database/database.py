@@ -55,11 +55,13 @@ db_lock = Lock()
 
 
 async def get_session() -> "AsyncIterator[AsyncSession]":
+    s = AsyncSessionLocal()
     try:
-        yield AsyncSessionLocal()
+        yield s
     except SQLAlchemyError as e:
         logger.exception(e)
-
+    finally:
+        s.close()
 
 async def database(session: "AsyncSession" = Depends(get_session)) -> "AsyncIterator[Database]":
     db = Database(session, db_lock)
