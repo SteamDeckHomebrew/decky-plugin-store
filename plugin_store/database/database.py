@@ -2,7 +2,7 @@ import logging
 from asyncio import Lock
 from datetime import datetime
 from os import getenv
-from typing import Optional, Dict, TYPE_CHECKING
+from typing import Optional, Dict, List, TYPE_CHECKING
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -255,15 +255,15 @@ class Database:
         result = (await session.execute(statement)).scalars().all()
         return result or []
 
-    async def versions(self, session: "AsyncSession") -> Dict[str, str] | None:
+    async def versions(self, session: "AsyncSession") -> Dict[str, List[str]] | None:
         statement = (
-            select(Artifact.name, Version.name)
+            select(Artifact.name, Version.name, Version.hash)
             .join(Version, Version.artifact_id == Artifact.id)
             .distinct(Version.artifact_id)
             .order_by(Version.artifact_id, Version.created.desc(), Version.id.asc())
         )
 
-        return {r[0]: r[1] for r in (await session.execute(statement)).tuples()}
+        return {r[0]: [r[1], r[2]] for r in (await session.execute(statement)).tuples()}
 
     async def get_plugin_by_name(self, session: "AsyncSession", name: str) -> "Artifact | None":
         statement = select(Artifact).where(Artifact.name == name)
