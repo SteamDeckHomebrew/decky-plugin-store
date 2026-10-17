@@ -271,15 +271,22 @@ class Database:
     async def increment_installs(
         self, session: "AsyncSession", plugin_name: str, version_name: str, isUpdate: bool
     ) -> bool:
-        statement = update(Version)
+        statement = (
+            update(Version)
+            .where(Version.name == version_name)
+            .where(
+                Version.artifact_id == (
+                    select(Artifact.id)
+                    .where(Artifact.name == plugin_name)
+                    .scalar_subquery()
+                )
+            )
+        )
         if isUpdate:
             statement = statement.values(updates=Version.updates + 1)
         else:
             statement = statement.values(downloads=Version.downloads + 1)
-        plugin_id = (await session.execute(select(Artifact.id).where(Artifact.name == plugin_name))).scalar()
-        if plugin_id is None:
-            return False
-        r = await session.execute(statement.where((Version.name == version_name) & (Version.artifact_id == plugin_id)))
+        r = await session.execute(statement)
         await session.commit()
         # if rowcount is zero then the version wasn't found
         return r.rowcount == 1  # type: ignore[attr-defined]
