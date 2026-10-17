@@ -38,8 +38,8 @@ engine_args = {
 
 if db_url.startswith("postgresql"):
     engine_args |= {
-        "pool_size": 150,
-        "max_overflow": 40,
+        "pool_size": 80,
+        "max_overflow": 20,
         "pool_timeout": 30,
         "pool_recycle": 1800
     }
