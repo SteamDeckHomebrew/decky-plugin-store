@@ -10,7 +10,7 @@ class Version(Base):
     __tablename__ = "versions"
     __table_args__ = (
         UniqueConstraint("artifact_id", "name", name="unique_version_artifact_id_name"),
-        Index("idx_version_artifact_map", "artifact_id", desc("added_on"), asc("id"))
+        Index("idx_version_artifact_map_v2", "artifact_id", desc("added_on"), asc("id"), postgresql_include=["downloads", "updates"])
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
