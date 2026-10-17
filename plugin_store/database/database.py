@@ -2,14 +2,14 @@ import logging
 from asyncio import Lock
 from datetime import datetime
 from os import getenv
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, Dict, TYPE_CHECKING
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from alembic import command
 from alembic.config import Config
 from asgiref.sync import sync_to_async
-from fastapi import Depends
+from fastapi import Depends, Response, status
 from sqlalchemy import asc, desc
 from sqlalchemy.exc import NoResultFound, SQLAlchemyError
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession, create_async_engine
@@ -39,13 +39,13 @@ engine_args = {
     "echo_pool": bool(getenv("DB_POOL_DEBUG", False))
 }
 
-# if db_url.startswith("postgresql"):
-#     engine_args |= {
-#         "pool_size": 80,
-#         "max_overflow": 20,
-#         "pool_timeout": 30,
-#         "pool_recycle": 1800
-#     }
+if db_url.startswith("postgresql"):
+    engine_args |= {
+        "pool_size": 80,
+        "max_overflow": 20,
+        "pool_timeout": 30,
+        "pool_recycle": 1800
+    }
 
 async_engine = create_async_engine(
     db_url,
@@ -254,6 +254,18 @@ class Database:
 
         result = (await session.execute(statement)).scalars().all()
         return result or []
+
+    async def versions(self, session: "AsyncSession") -> Dict[str, str] | None:
+        statement = (
+            select(Artifact.name, Version.name)
+            .join(Version, Version.artifact_id == Artifact.id)
+            .distinct(Version.artifact_id)
+            .order_by(Version.artifact_id, Version.created.desc(), Version.id.asc())
+        )
+
+        res = {r[0]: r[1] for r in (await session.execute(statement)).tuples()}
+
+        return res if len(res) > 0 else Response(status_code=status.HTTP_204_NO_CONTENT)
 
     async def get_plugin_by_name(self, session: "AsyncSession", name: str) -> "Artifact | None":
         statement = select(Artifact).where(Artifact.name == name)

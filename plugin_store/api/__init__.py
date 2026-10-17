@@ -24,6 +24,7 @@ from .models import delete as api_delete
 from .models import list as api_list
 from .models import submit as api_submit
 from .models import update as api_update
+from .models import versions as api_versions
 from .utils import FormBody, getIpHash, UUID7
 
 app = FastAPI()
@@ -164,6 +165,11 @@ async def plugins_list(
     plugins = await db.search(db.session, query, tags, hidden, sort_by, sort_direction)
     return plugins
 
+@app.get("/versions", response_model=list[api_versions.VersionsResponse])
+async def plugin_versions(
+    db: "Database" = Depends(database),
+):
+    return await db.versions(db.session)
 
 @app.post("/plugins/{plugin_name}/versions/{version_name}/increment", responses={404: {}, 429: {}})
 async def increment_plugin_install_count(
