@@ -33,7 +33,8 @@ if not db_url:
     raise Exception("DB_URL not provided or invalid!")
 
 engine_args = {
-    "pool_pre_ping": True
+    "pool_pre_ping": True,
+    "echo": getenv("DB_DEBUG", False)
 }
 
 if db_url.startswith("postgresql"):
@@ -47,7 +48,6 @@ if db_url.startswith("postgresql"):
 async_engine = create_async_engine(
     db_url,
     **engine_args
-    # echo=settings.ECHO_SQL,
 )
 AsyncSessionLocal = async_sessionmaker(bind=async_engine, autoflush=False, future=True, expire_on_commit=False)
 
