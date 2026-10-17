@@ -165,11 +165,12 @@ async def plugins_list(
     plugins = await db.search(db.session, query, tags, hidden, sort_by, sort_direction)
     return plugins
 
-@app.get("/versions", response_model=list[api_versions.VersionsResponse])
+@app.get("/versions", response_model=api_versions.VersionsResponse | None)
 async def plugin_versions(
     db: "Database" = Depends(database),
 ):
-    return await db.versions(db.session)
+    versions = await db.versions(db.session)
+    return versions
 
 @app.post("/plugins/{plugin_name}/versions/{version_name}/increment", responses={404: {}, 429: {}})
 async def increment_plugin_install_count(

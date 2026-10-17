@@ -263,9 +263,7 @@ class Database:
             .order_by(Version.artifact_id, Version.created.desc(), Version.id.asc())
         )
 
-        res = {r[0]: r[1] for r in (await session.execute(statement)).tuples()}
-
-        return res if len(res) > 0 else Response(status_code=status.HTTP_204_NO_CONTENT)
+        return {r[0]: r[1] for r in (await session.execute(statement)).tuples()}
 
     async def get_plugin_by_name(self, session: "AsyncSession", name: str) -> "Artifact | None":
         statement = select(Artifact).where(Artifact.name == name)
