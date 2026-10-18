@@ -188,7 +188,7 @@ async def plugins_list(
     plugins = await db.search(db.session, query, tags, hidden, sort_by, sort_direction)
     return plugins
 
-@app.get("/versions", response_model=api_versions.VersionsResponse | None)
+@app.get("/plugins/versions", response_model=api_versions.VersionsResponse | None)
 async def plugin_versions(
     db: "Database" = Depends(database),
 ):
