@@ -11,7 +11,7 @@ RUN apk add curl libffi-dev  \
     && curl -sSL https://install.python-poetry.org | python - --version 2.5.1 \
     && apk del curl libffi-dev
 
-ENV PATH="$POETRY_HOME/bin:/root/.local/bin:$PATH"
+ENV PATH="/root/.local/bin:$PATH"
 
 WORKDIR /app
 
