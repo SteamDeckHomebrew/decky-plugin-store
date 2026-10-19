@@ -2,7 +2,7 @@
 
 .PHONY: help
 help:
-	@echo "Read the Makefile plz"
+	@echo "Read the README plz"
 
 .PHONY: autoformat/black
 autoformat/black:
