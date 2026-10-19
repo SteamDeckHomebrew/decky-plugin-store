@@ -31,7 +31,7 @@ def construct_image_path(plugin_name: str, file_hash: str, mime_type: str) -> st
 
 
 async def _b2_upload(filename: str, binary: "bytes", mime_type: str = "b2/x-auto"):
-    async with ClientSession(raise_for_status=True) as web:
+    async with ClientSession(raise_for_status=False) as web:
         auth_str = f"{getenv('B2_APP_KEY_ID')}:{getenv('B2_APP_KEY')}".encode("utf-8")
         async with web.get(
             "https://api.backblazeb2.com/b2api/v2/b2_authorize_account",
@@ -39,7 +39,7 @@ async def _b2_upload(filename: str, binary: "bytes", mime_type: str = "b2/x-auto
         ) as res:
             if not res.status == 200:
                 getLogger().error(f"B2 LOGIN ERROR {await res.read()!r}")
-                return
+                raise B2UploadError("login error")
             res_data = await res.json()
 
             async with web.post(
@@ -48,8 +48,8 @@ async def _b2_upload(filename: str, binary: "bytes", mime_type: str = "b2/x-auto
                 headers={"Authorization": res_data["authorizationToken"]},
             ) as res_data:
                 if not res_data.status == 200:
-                    res_data.raise_for_status()
-                    return print("B2 GET_UPLOAD_URL ERROR ", await res_data.read())
+                    print("B2 GET_UPLOAD_URL ERROR ", await res_data.read())
+                    raise B2UploadError("get upload url error")
                 res_data = await res_data.json()
 
                 res_data = await web.post(
