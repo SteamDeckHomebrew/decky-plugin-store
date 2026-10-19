@@ -7,8 +7,8 @@ This project powers Decky plugin store @ https://plugins.deckbrew.xyz/. It is us
 ### Running in docker
 
 As standard `docker-compose.yml` file is used for deployment, there is a separate `docker-compose.local.yml` file you 
-can use. Just use `docker-compose -f docker-compose.local.yml up` to bring up the project. You can use any 
-`docker-compose` commands normally as long as you add `-f docker-compose.local.yml` argument.
+can use. Just use `docker compose -f docker-compose.local.yml up` to bring up the project. You can use any 
+`docker compose` commands normally as long as you add `-f docker-compose.local.yml` argument.
 
 ### Using Makefile
 
