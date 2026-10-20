@@ -1,0 +1,43 @@
+name: Test
+
+"on":
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: "Test"
+    
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+    
+    steps:
+      -
+        name: "Shallow clone repository"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      -
+        name: "Install Poetry"
+        # language=bash
+        run: |-
+          pipx install poetry
+      -
+        name: "Install Python"
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          cache: poetry
+      -
+        name: "Install Python dev dependencies"
+        # language=bash
+        run: |-
+          poetry install --with=dev
+      -
+        name: "Run tests"
+        # language=bash
+        run: |-
+          make test
