@@ -64,7 +64,7 @@ async def _b2_upload(filename: str, binary: "bytes", mime_type: str = "b2/x-auto
                     },
                 )
                 t = await res_data.text()
-                if res.status == 200:
+                if res_data.status == 200:
                     return t
                 raise B2UploadError(t)
 
