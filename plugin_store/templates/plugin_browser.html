@@ -18,7 +18,7 @@
             <img src="https://cdn.tzatzikiweeb.moe/file/steam-deck-homebrew/SDHomeBrewwwww.png" width="48" height="48">
             Plugins
           </a>
-          <form class="d-flex">
+          <form class="d-flex" @submit.prevent>
             <input v-on:change="searchPlugins" v-model="search_input" class="form-control me-2" type="search"
               placeholder="Search" aria-label="Search">
           </form>
